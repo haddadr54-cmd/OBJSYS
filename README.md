@@ -102,6 +102,27 @@ Para produção recomenda-se:
 3. Políticas RLS revisadas + testes automáticos
 4. Monitoração: logs estruturados + métricas de erros
 
+### Deploy na Vercel
+- Este projeto já inclui `vercel.json` para deploy estático da SPA (Vite) com fallback de rotas.
+- Passos:
+  1. Crie uma conta e um projeto em vercel.com, importando o repositório OBJSYS.
+  2. Em Project Settings → Environment Variables, adicione as variáveis:
+	  - `VITE_SUPABASE_URL`
+	  - `VITE_SUPABASE_ANON_KEY`
+  3. Nas configurações de Build & Output:
+	  - Build Command: `npm run build`
+	  - Output Directory: `dist`
+  4. Deploy. A Vercel irá rodar o build e publicar `dist/` com o rewrite para `index.html`.
+
+Opcional (CLI):
+```
+npm i -g vercel
+vercel link
+vercel env add VITE_SUPABASE_URL
+vercel env add VITE_SUPABASE_ANON_KEY
+vercel --prod
+```
+
 ### Supabase no GitHub (Configuração de Repositório)
 Defina os segredos do repositório (Settings → Secrets and variables → Actions → New repository secret):
 
