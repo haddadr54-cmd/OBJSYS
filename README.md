@@ -40,7 +40,7 @@ node scripts/dev-all.js
 ```
 Ou apenas o frontend (Vite):
 ```
-
+npm run dev
 ```
 
 ### Estrutura de Pastas (resumida)
@@ -90,6 +90,22 @@ Para produção recomenda-se:
 2. Build `npm run build` e servir `dist/` via CDN / edge
 3. Políticas RLS revisadas + testes automáticos
 4. Monitoração: logs estruturados + métricas de erros
+
+### Supabase no GitHub (Configuração de Repositório)
+Defina os segredos do repositório (Settings → Secrets and variables → Actions → New repository secret):
+
+- `VITE_SUPABASE_URL` (para pré-visualização/deploys que injetam env do repo)
+- `VITE_SUPABASE_ANON_KEY` (chave anônima do projeto)
+- `SUPABASE_URL` (para jobs Node/CI que não usam Vite env)
+- `SUPABASE_SERVICE_ROLE_KEY` (apenas para jobs de auditoria/admin; NUNCA expor em frontend)
+
+Workflows adicionados:
+- `.github/workflows/ci.yml`: build/lint/typecheck em pushes e PRs da branch master.
+- `.github/workflows/supabase-audit.yml`: execução manual (Actions → Supabase Audit) que roda `npm run provision:audit` usando `SUPABASE_SERVICE_ROLE_KEY` para verificar vínculos (somente backend/CI).
+
+Observações de segurança:
+- O arquivo `.env` local está em `.gitignore` (não é commitado). Use `.env.local` ou variáveis do provedor de deploy.
+- Nunca injete `SUPABASE_SERVICE_ROLE_KEY` no frontend. Use apenas em ambiente seguro (CI/servidor).
 
 ### Licença
 Definir antes de distribuição pública (atualmente uso interno).
