@@ -1,5 +1,8 @@
 ## Sistema Escolar (React + Vite + Supabase)
 
+[![CI](https://github.com/haddadr54-cmd/OBJSYS/actions/workflows/ci.yml/badge.svg)](https://github.com/haddadr54-cmd/OBJSYS/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/tag/haddadr54-cmd/OBJSYS?label=latest%20tag)](https://github.com/haddadr54-cmd/OBJSYS/tags)
+
 Portal escolar com suporte a operação offline, sincronização em tempo real e políticas de segurança (RLS) para entidades acadêmicas.
 
 ### Stack
@@ -41,6 +44,13 @@ node scripts/dev-all.js
 Ou apenas o frontend (Vite):
 ```
 npm run dev
+```
+
+Executar checagens locais rápidas:
+```
+npm run typecheck
+npm run lint
+npm run build
 ```
 
 ### Estrutura de Pastas (resumida)
