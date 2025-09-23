@@ -12,7 +12,7 @@ on:
         required: false
         default: ''
       notes:
-        description: 'Release notes'
+        description: 'Release notes (optional). If empty, a short excerpt from CHANGELOG.md will be used.'
         required: false
         default: ''
 
@@ -20,13 +20,65 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare release notes
+        id: prep
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          NOTES_INPUT="${{ inputs.notes }}"
+          if [ -n "$NOTES_INPUT" ]; then
+            printf "%s" "$NOTES_INPUT" > RELEASE_NOTES.md
+          else
+            if [ -f CHANGELOG.md ]; then
+              echo "## $TAG" > RELEASE_NOTES.md
+              awk -v tag="$TAG" '
+                BEGIN{p=0}
+                /^##[[:space:]]/ {
+                  if (p) exit
+                  line=$0
+                  gsub(/\[/,"",line); gsub(/\]/,"",line)
+                  if (line ~ "^##[[:space:]]*" tag) { p=1; next }
+                }
+                p==1 { print }
+              ' CHANGELOG.md >> RELEASE_NOTES.md
+              # If nothing was extracted (empty or only header), fallback to short summary
+              if ! grep -q '[^[:space:]]' RELEASE_NOTES.md || [ $(wc -l < RELEASE_NOTES.md) -lt 2 ]; then
+                cat > RELEASE_NOTES.md << 'EOF'
+## Highlights
+
+- Dev orchestrator (scripts/dev-all.js): porta fixa 5173, restart com debounce e shutdown limpo.
+- Backend Express com /health e encerramento gracioso.
+- App React + Vite + TypeScript + Tailwind com build e typecheck OK.
+- ESLint baseline mais permissivo; correções de regras de hooks.
+- Script de auditoria Supabase (scripts/provision-audit.cjs).
+- GitHub Actions: CI, auditoria e release manuais.
+EOF
+              fi
+            else
+              cat > RELEASE_NOTES.md << 'EOF'
+## Highlights
+
+- Dev orchestrator (scripts/dev-all.js): porta fixa 5173, restart com debounce e shutdown limpo.
+- Backend Express com /health e encerramento gracioso.
+- App React + Vite + TypeScript + Tailwind com build e typecheck OK.
+- ESLint baseline mais permissivo; correções de regras de hooks.
+- Script de auditoria Supabase (scripts/provision-audit.cjs).
+- GitHub Actions: CI, auditoria e release manuais.
+EOF
+            fi
+          fi
+          echo "notes=RELEASE_NOTES.md" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          release_name: ${{ inputs.title || inputs.tag }}
-          body: ${{ inputs.notes }}
+          name: ${{ inputs.title || inputs.tag }}
+          body_path: ${{ steps.prep.outputs.notes }}
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
