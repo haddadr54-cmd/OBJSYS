@@ -123,6 +123,11 @@ vercel env add VITE_SUPABASE_ANON_KEY
 vercel --prod
 ```
 
+Ambientes e segurança:
+- O diretório `.vercel/` está no repositório apenas com `.gitignore` para evitar commit de IDs sensíveis (team/project.json).
+- Configure variáveis separadas para Preview e Production conforme sua necessidade (Project Settings → Environment Variables → Scope).
+- O `vercel.json` fixa: framework Vite, comandos de build/dev, output `dist`, rewrite SPA e auto-cancelamento de jobs do GitHub.
+
 ### Supabase no GitHub (Configuração de Repositório)
 Defina os segredos do repositório (Settings → Secrets and variables → Actions → New repository secret):
 
