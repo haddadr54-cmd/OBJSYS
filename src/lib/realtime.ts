@@ -1,5 +1,5 @@
 // Unificado para usar o cliente único supabase.ts
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 // Tipos de eventos normalizados
 export type RealtimeEntity = 'notas' | 'recados' | 'provas_tarefas' | 'materiais';
@@ -42,6 +42,10 @@ let broadcastChannelInitialized = false;
 
 // Função para inicializar os canais uma única vez
 export const initializeRealtime = () => {
+  if (!isSupabaseConfigured || !supabase) {
+    console.warn('[Realtime] Supabase indisponível. Modo offline: Realtime desativado.');
+    return;
+  }
   if (initialized) return;
   initialized = true;
   console.log('[Realtime] Inicializando canais...');
@@ -54,13 +58,14 @@ export const initializeRealtime = () => {
 
 function attachBroadcastChannel() {
   if (broadcastChannelInitialized) return;
+  if (!isSupabaseConfigured || !supabase) return;
   const channel = supabase.channel('recados_broadcast');
-  channel.on('broadcast', { event: 'recado_deleted' }, (payload) => {
+  channel.on('broadcast', { event: 'recado_deleted' }, (payload: any) => {
     if (DEBUG_REALTIME) console.debug('[Realtime][BROADCAST] recado_deleted', payload.payload);
     broadcastListeners.recado_deleted.forEach(cb => {
       try { cb(payload.payload); } catch (e) { console.error('[Realtime][BROADCAST] handler error', e); }
     });
-  }).subscribe(status => {
+  }).subscribe((status: any) => {
     if (DEBUG_REALTIME) console.debug('[Realtime][BROADCAST][STATUS]', status);
   });
   broadcastChannelInitialized = true;
@@ -72,12 +77,13 @@ export const onRecadoDeletedBroadcast = (handler: BroadcastHandler) => {
 };
 
 function attachChannel(entity: RealtimeEntity) {
+  if (!isSupabaseConfigured || !supabase) return;
   const channel = supabase.channel(`public:${entity}`);
 
   channel.on(
     'postgres_changes',
     { event: '*', schema: 'public', table: entity },
-    (payload) => {
+  (payload: any) => {
       const action = (payload.eventType || 'UPDATE') as RealtimeAction;
       const evt: RealtimeEvent = {
         entity,
@@ -98,7 +104,7 @@ function attachChannel(entity: RealtimeEntity) {
         try { cb(evt); } catch (e) { console.error('[Realtime] Listener error', e); }
       });
     }
-  ).subscribe((status) => {
+  ).subscribe((status: any) => {
     if (!DEBUG_REALTIME) {
       if (status === 'SUBSCRIBED') console.log(`[Realtime] Canal ${entity} ativo`);
     } else {
@@ -109,7 +115,9 @@ function attachChannel(entity: RealtimeEntity) {
   activeChannels.push({
     entity,
     unsubscribe: async () => {
-      await supabase.removeChannel(channel);
+      if (isSupabaseConfigured && supabase) {
+        await supabase.removeChannel(channel);
+      }
     }
   });
 }

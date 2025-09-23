@@ -9,20 +9,21 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  // Lançar erro cedo para evitar acessar um cliente inválido.
-  throw new Error('Variáveis de ambiente Supabase ausentes. Crie um arquivo .env.local com VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.');
-}
+// Em produção/preview sem variáveis, rodar em modo OFFLINE (fallback localDB)
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-  db: {
-    schema: 'public'
-  }
-});
+// Use 'any' para evitar propagar nullability pelo arquivo todo; em runtime será null quando offline
+export const supabase: any = isSupabaseConfigured
+  ? createClient(supabaseUrl!, supabaseAnonKey!, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+      db: {
+        schema: 'public'
+      }
+    })
+  : (console.warn('⚠️ Supabase não configurado (VITE_SUPABASE_URL/ANON_KEY ausentes). Rodando em modo offline.'), null);
 
 // IMPORTANTE: Não exponha a service role key no código do cliente.
 // Se precisar de operações administrativas use um backend (ex: Express server) e
@@ -357,10 +358,10 @@ const insertInitialData = async () => {
     console.log('✅ Turmas inseridas:', turmasData?.length);
 
     // Buscar IDs dos usuários e turmas para relacionamentos
-    const paiUser = usuariosData?.find(u => u.email === 'pai@escola.com');
-    const professorUser = usuariosData?.find(u => u.email === 'professor@escola.com');
-    const turma1 = turmasData?.find(t => t.nome === '5º Ano A');
-    const turma2 = turmasData?.find(t => t.nome === '3º Ano B');
+  const paiUser = usuariosData?.find((u: any) => u.email === 'pai@escola.com');
+  const professorUser = usuariosData?.find((u: any) => u.email === 'professor@escola.com');
+  const turma1 = turmasData?.find((t: any) => t.nome === '5º Ano A');
+  const turma2 = turmasData?.find((t: any) => t.nome === '3º Ano B');
 
     if (paiUser && turma1 && turma2) {
       // Inserir alunos
@@ -504,7 +505,7 @@ export const getAllGlobalConfigs = async (): Promise<Record<string, any>> => {
     if (error) throw error;
     
     const configs: Record<string, any> = {};
-    data?.forEach(item => {
+    data?.forEach((item: any) => {
       configs[item.chave] = item.valor;
     });
     
@@ -751,7 +752,7 @@ export const getNotasByProfessor = async (professorId: string): Promise<Nota[]> 
       .eq('professor_id', professorId);
     if (discError) throw discError;
     if (!disciplinas || disciplinas.length === 0) return [];
-    const disciplinaIds = disciplinas.map(d => d.id);
+  const disciplinaIds = disciplinas.map((d: any) => d.id);
     const { data, error } = await supabase
       .from('notas')
       .select(`
@@ -789,8 +790,8 @@ export const getRecadosForUser = async (userId: string, userType: string): Promi
         .select('id, turma_id')
         .eq('responsavel_id', userId);
       if (alunos && alunos.length > 0) {
-        const turmaIds = alunos.map(a => a.turma_id);
-        const alunoIds = alunos.map(a => a.id);
+  const turmaIds = alunos.map((a: any) => a.turma_id);
+  const alunoIds = alunos.map((a: any) => a.id);
         query = query.or(`destinatario_tipo.eq.geral,and(destinatario_tipo.eq.turma,destinatario_id.in.(${turmaIds.join(',')})),and(destinatario_tipo.eq.aluno,destinatario_id.in.(${alunoIds.join(',')}))`);
       } else {
         query = query.eq('destinatario_tipo', 'geral');
@@ -1071,7 +1072,7 @@ export const bulkDeleteRecados = async (ids: string[]): Promise<{ successIds: st
       .in('id', ids)
       .select('id');
     if (error) throw error;
-    const deletedIds = (data || []).map(r => (r as any).id);
+  const deletedIds = (data || []).map((r: any) => (r as any).id);
     ids.forEach(id => {
       if (deletedIds.includes(id)) successIds.push(id); else failedIds.push(id);
     });
@@ -1241,7 +1242,7 @@ export const getPresencasByTurmaData = async (turmaId: string, data: string, dis
     if (error) throw error;
     
     // Filtrar por turma através dos alunos
-    const presencasDaTurma = presencas?.filter(p => p.aluno?.turma_id === turmaId) || [];
+  const presencasDaTurma = presencas?.filter((p: any) => p.aluno?.turma_id === turmaId) || [];
     return presencasDaTurma;
   } catch (error) {
     console.error('Erro ao buscar presenças:', error);
@@ -1601,8 +1602,8 @@ export const getEstatisticasVisualizacao = async (
       };
     }
 
-    const usuariosUnicos = new Set(data.map(v => v.usuario_id)).size;
-    const datas = data.map(v => v.visualizado_em).sort();
+  const usuariosUnicos = new Set(data.map((v: any) => v.usuario_id)).size;
+  const datas = data.map((v: any) => v.visualizado_em).sort();
 
     return {
       totalVisualizacoes: data.length,

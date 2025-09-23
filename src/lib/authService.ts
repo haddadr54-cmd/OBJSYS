@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 import type { Usuario } from './supabase';
 
 /*
@@ -13,6 +13,7 @@ export interface AuthResult {
 }
 
 async function fetchUsuarioByAuthUserId(authUserId: string): Promise<Usuario | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
   const { data, error } = await supabase
     .from('usuarios')
     .select('*')
@@ -26,6 +27,10 @@ async function fetchUsuarioByAuthUserId(authUserId: string): Promise<Usuario | n
 }
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {
+  if (!isSupabaseConfigured || !supabase) {
+    // Em modo offline não há Supabase Auth
+    throw new Error('OFFLINE_AUTH');
+  }
   // Tenta Supabase Auth primeiro
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
   if (authError) {
@@ -41,6 +46,7 @@ export async function signIn(email: string, password: string): Promise<AuthResul
 }
 
 export async function getCurrentSessionUsuario(): Promise<Usuario | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
   const { data: sessionData } = await supabase.auth.getSession();
   const authUserId = sessionData.session?.user?.id;
   if (!authUserId) return null;
@@ -48,6 +54,7 @@ export async function getCurrentSessionUsuario(): Promise<Usuario | null> {
 }
 
 export async function signOut(): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }

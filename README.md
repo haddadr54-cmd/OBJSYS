@@ -144,6 +144,9 @@ Defina os segredos do repositório (Settings → Secrets and variables → Actio
 Workflows adicionados:
 - `.github/workflows/ci.yml`: build/lint/typecheck em pushes e PRs da branch master.
 - `.github/workflows/supabase-audit.yml`: execução manual (Actions → Supabase Audit) que roda `npm run provision:audit` usando `SUPABASE_SERVICE_ROLE_KEY` para verificar vínculos (somente backend/CI).
+ - `.github/workflows/supabase-validate.yml`: valida migrations com Supabase CLI em PRs que alteram `supabase/**` (sobe docker local, aplica reset e migrações).
+ - `.github/workflows/supabase-gen-types.yml`: gera `src/types/supabase.ts` a partir do projeto (manual). Requer `SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no repo.
+ - `.github/workflows/vercel-deploy.yml`: deploy na Vercel em pushes para `master` (ou manual). Requer `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
 
 Observações de segurança:
 - O arquivo `.env` local está em `.gitignore` (não é commitado). Use `.env.local` ou variáveis do provedor de deploy.

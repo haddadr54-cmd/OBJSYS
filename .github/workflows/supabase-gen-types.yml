@@ -1,0 +1,46 @@
+name: Supabase Generate Types
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gen-types:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Supabase CLI
+        run: |
+          curl -sL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | sudo tar -xz -C /usr/local/bin supabase
+          supabase --version
+
+      - name: Generate types
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          mkdir -p src/types
+          supabase gen types typescript --project-id "$SUPABASE_URL" --schema public > src/types/supabase.ts || echo "Falling back to API method"
+          if [ ! -s src/types/supabase.ts ]; then
+            npx supabase@latest gen types typescript --project-id "$SUPABASE_URL" --schema public > src/types/supabase.ts
+          fi
+
+      - name: Commit types
+        run: |
+          if git diff --quiet src/types/supabase.ts; then
+            echo "No changes in types"
+          else
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add src/types/supabase.ts
+            git commit -m "chore(supabase): update generated types"
+            git push
+          fi

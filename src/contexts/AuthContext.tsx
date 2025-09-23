@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase, signInWithSupabase } from '../lib/supabase';
+import { supabase, signInWithSupabase, isSupabaseConfigured } from '../lib/supabase';
+import { localDB } from '../lib/localDatabase';
 import { signIn as authSignIn, getCurrentSessionUsuario } from '../lib/authService';
 import type { Usuario } from '../lib/supabase';
 
@@ -35,9 +36,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     const initializeAuth = async () => {
       try {
-        // A conexão com o Supabase será gerenciada pelo ConfigManager
-        // Aqui apenas verificamos se o cliente está disponível
-        setIsSupabaseConnected(!!supabase);
+  // Verificar se supabase está configurado corretamente
+  setIsSupabaseConnected(!!supabase && isSupabaseConfigured);
         
         // Carregar usuário salvo
         const savedUser = localStorage.getItem('currentUser');
@@ -79,12 +79,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signIn = async (email: string, password: string) => {
     console.log('🔄 Tentando login (transição Auth)...', { email, isSupabaseConnected });
-    if (!isSupabaseConnected) {
-      throw new Error('Sistema requer conexão com Supabase.');
-    }
     // Tenta novo fluxo
     try {
-  const { usuario } = await authSignIn(email, password);
+      if (!isSupabaseConnected) {
+        // Fallback OFFLINE: autenticar contra localDB seed
+        const u = localDB.getUsuarioByEmail(email);
+        if (!u || u.senha !== password || !u.ativo) {
+          throw new Error('Credenciais inválidas');
+        }
+        const offlineUsuario: Usuario = {
+          id: u.id,
+          nome: u.nome,
+          email: u.email,
+          tipo_usuario: u.tipo_usuario,
+          telefone: u.telefone,
+          avatar_url: u.avatar_url,
+          ativo: u.ativo,
+          criado_em: u.criado_em
+        } as any;
+        setUser(offlineUsuario);
+        localStorage.setItem('currentUser', JSON.stringify(offlineUsuario));
+        return;
+      }
+
+      const { usuario } = await authSignIn(email, password);
       if (usuario) {
         console.log('✅ Login via Supabase Auth (vínculo resolvido)');
         setUser(usuario);

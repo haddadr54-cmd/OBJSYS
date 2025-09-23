@@ -1,0 +1,31 @@
+name: Supabase Validate Migrations
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        run: |
+          curl -sL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | sudo tar -xz -C /usr/local/bin supabase
+          supabase --version
+
+      - name: Start local Supabase (Docker)
+        run: |
+          supabase start -x studio,imgproxy,edge-runtime,inspector
+
+      - name: Apply migrations (reset)
+        run: |
+          supabase db reset --force
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
