@@ -1,6 +1,7 @@
 ## Sistema Escolar (React + Vite + Supabase)
 
 [![CI](https://github.com/haddadr54-cmd/OBJSYS/actions/workflows/ci.yml/badge.svg)](https://github.com/haddadr54-cmd/OBJSYS/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/haddadr54-cmd/OBJSYS?label=latest%20release&sort=semver)](https://github.com/haddadr54-cmd/OBJSYS/releases/latest)
 [![Release](https://img.shields.io/github/v/tag/haddadr54-cmd/OBJSYS?label=latest%20tag)](https://github.com/haddadr54-cmd/OBJSYS/tags)
 
 Portal escolar com suporte a operação offline, sincronização em tempo real e políticas de segurança (RLS) para entidades acadêmicas.
