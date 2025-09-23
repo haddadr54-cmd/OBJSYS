@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LogoProvider } from './contexts/LogoContext';
 import { GlobalConfigProvider } from './utils/configManager.tsx';
@@ -7,6 +7,7 @@ import { SidebarManager } from './components/Layout/SidebarManager';
 import { ParentDashboard } from './components/Dashboard/ParentDashboard';
 import { AdminDashboard } from './components/Dashboard/AdminDashboard';
 import { TeacherDashboard } from './components/Dashboard/TeacherDashboard';
+import { isSupabaseConfigured } from './lib/supabase';
 
 export const pageTitles: Record<string, string> = {
   'dashboard': 'Dashboard',
@@ -95,7 +96,6 @@ function AppContent() {
           onPageChange={() => {}}
           isOpen={true}
           onToggle={() => {}}
-          config={null}
           mockUser={mockUser}
         />
         <div className="flex-1 flex items-center justify-center">
@@ -183,6 +183,13 @@ function App() {
       <AuthProvider>
         <GlobalConfigProvider>
           <AppContent />
+          {!isSupabaseConfigured && (
+            <div className="fixed bottom-3 right-3 z-50 select-none">
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 shadow border border-amber-200">
+                Modo offline (demo)
+              </div>
+            </div>
+          )}
         </GlobalConfigProvider>
       </AuthProvider>
     </LogoProvider>
