@@ -45,6 +45,22 @@ jobs:
             echo "VITE_* secrets not set in GitHub; relying on 'vercel pull' vars."
           fi
 
+      - name: Diagnose Supabase config (no secrets)
+        run: |
+          echo "Diagnosing Supabase env availability for Vite"
+          CONFIGURED=false
+          SOURCE="none"
+          if [ -f ".env.production" ] && grep -q '^VITE_SUPABASE_URL=' .env.production && grep -q '^VITE_SUPABASE_ANON_KEY=' .env.production; then
+            CONFIGURED=true; SOURCE=".env.production";
+          elif [ -f ".vercel/.env.production.local" ] && grep -q '^VITE_SUPABASE_URL=' .vercel/.env.production.local && grep -q '^VITE_SUPABASE_ANON_KEY=' .vercel/.env.production.local; then
+            CONFIGURED=true; SOURCE=".vercel/.env.production.local";
+          elif [ -f ".vercel/.env.local" ] && grep -q '^VITE_SUPABASE_URL=' .vercel/.env.local && grep -q '^VITE_SUPABASE_ANON_KEY=' .vercel/.env.local; then
+            CONFIGURED=true; SOURCE=".vercel/.env.local";
+          elif [ -n "${VITE_SUPABASE_URL}" ] && [ -n "${VITE_SUPABASE_ANON_KEY}" ]; then
+            CONFIGURED=true; SOURCE="process.env";
+          fi
+          echo "SUPABASE_CONFIGURED=${CONFIGURED} (source=${SOURCE})"
+
       - name: Build Project (Vercel)
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
