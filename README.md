@@ -3,8 +3,12 @@
 [![CI](https://github.com/haddadr54-cmd/OBJSYS/actions/workflows/ci.yml/badge.svg)](https://github.com/haddadr54-cmd/OBJSYS/actions/workflows/ci.yml)
 [![Latest Release](https://img.shields.io/github/v/release/haddadr54-cmd/OBJSYS?label=latest%20release&sort=semver)](https://github.com/haddadr54-cmd/OBJSYS/releases/latest)
 [![Release](https://img.shields.io/github/v/tag/haddadr54-cmd/OBJSYS?label=latest%20tag)](https://github.com/haddadr54-cmd/OBJSYS/tags)
+[![Live](https://img.shields.io/badge/live-OBJSYS-success)](https://objsys-1344-f89hw5d0n-rafaels-projects-33d7a96f.vercel.app)
 
 Portal escolar com suporte a operação offline, sincronização em tempo real e políticas de segurança (RLS) para entidades acadêmicas.
+
+### Demo
+- URL pública (Vercel): https://objsys-1344-f89hw5d0n-rafaels-projects-33d7a96f.vercel.app
 
 ### Stack
 - Frontend: React + Vite + TypeScript + Tailwind
