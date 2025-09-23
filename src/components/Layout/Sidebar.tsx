@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Home, 
   BookOpen, 
   Calendar, 
   FileText, 
-  MessageSquare, 
   User, 
   Users, 
   GraduationCap,
+  MessageSquare,
   Settings,
   LogOut,
   X,
@@ -373,19 +373,21 @@ export function Sidebar({ currentPage, onPageChange, isOpen, onToggle, config, u
   
   // Usar user passado via props (modo preview) ou user autenticado
   const user = propUser || authUser;
+  // Keep param referenced to avoid unused warning in relaxed lint baseline
+  void config;
   
   const [expandedSections, setExpandedSections] = useState<string[]>(['pessoas', 'academico']);
   const [searchTerm, setSearchTerm] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [sidebarConfig, setSidebarConfig] = useState<any>(null);
   
-  if (!user) return null;
-
-  const userType = user.tipo_usuario;
-  const items = menuItems[userType] || [];
+  type MenuKey = keyof typeof menuItems;
+  const userType: MenuKey = (user?.tipo_usuario as MenuKey) ?? 'pai';
+  const items: MenuItem[] = (menuItems[userType] ?? []) as MenuItem[];
 
   // Load favorites from localStorage
   useEffect(() => {
+    if (!user?.id) return;
     const savedFavorites = localStorage.getItem(`favorites_${user.id}`);
     if (savedFavorites) {
       setFavorites(JSON.parse(savedFavorites));
@@ -418,6 +420,7 @@ export function Sidebar({ currentPage, onPageChange, isOpen, onToggle, config, u
 
   // Save favorites to localStorage
   const toggleFavorite = (itemId: string) => {
+    if (!user?.id) return;
     const newFavorites = favorites.includes(itemId)
       ? favorites.filter(id => id !== itemId)
       : [...favorites, itemId];
@@ -589,6 +592,9 @@ export function Sidebar({ currentPage, onPageChange, isOpen, onToggle, config, u
     favorites.includes(item.id) || 
     (item.children && item.children.some(child => favorites.includes(child.id)))
   );
+
+  // Safe early return AFTER hooks
+  if (!user) return null;
 
   return (
     <>
