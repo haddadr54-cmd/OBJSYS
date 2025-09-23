@@ -113,6 +113,7 @@ Para produção recomenda-se:
 	  - Build Command: `npm run build`
 	  - Output Directory: `dist`
   4. Deploy. A Vercel irá rodar o build e publicar `dist/` com o rewrite para `index.html`.
+	5. Em Project Settings → Git, defina a Production Branch como `master`.
 
 Opcional (CLI):
 ```
