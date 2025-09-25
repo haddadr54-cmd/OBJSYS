@@ -40,3 +40,6 @@ server/node_modules
 *.sln
 *.sw?
 .env
+.env.local
+.env.production.local
+.env.development.local

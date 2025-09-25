@@ -1,12 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, MessageSquare, Users, User, Send, AlertCircle, Check } from 'lucide-react';
-import { 
-  getTurmasByProfessor, 
-  getAllAlunos,
-  createRecado 
-} from '../../lib/supabase';
 import type { Turma, Aluno } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDataService } from '../../lib/dataService';
 
 interface EnviarRecadoModalProps {
   isOpen: boolean;
@@ -15,12 +11,14 @@ interface EnviarRecadoModalProps {
 }
 
 export function EnviarRecadoModal({ isOpen, onClose, onSave }: EnviarRecadoModalProps) {
-  const { user } = useAuth();
+  const { user, isSupabaseConnected } = useAuth();
+  const dataService = useDataService(user, isSupabaseConnected);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [formData, setFormData] = useState({
     destinatario_tipo: 'turma' as 'turma' | 'aluno' | 'geral',
     destinatario_id: '',
+    aluno_id: '',
     titulo: '',
     conteudo: ''
   });
@@ -38,12 +36,15 @@ export function EnviarRecadoModal({ isOpen, onClose, onSave }: EnviarRecadoModal
     if (formData.destinatario_tipo === 'aluno' && formData.destinatario_id) {
       // Buscar alunos da turma selecionada
       fetchAlunosDaTurma();
+    } else if (formData.destinatario_tipo !== 'aluno') {
+      setAlunos([]);
+      setFormData(prev => ({ ...prev, aluno_id: '' }));
     }
   }, [formData.destinatario_tipo, formData.destinatario_id]);
 
   const fetchData = async () => {
     try {
-      const turmasData = await getTurmasByProfessor(user!.id);
+      const turmasData = await dataService.getTurmas();
       setTurmas(turmasData);
     } catch (error) {
       console.error('Erro ao carregar turmas:', error);
@@ -52,7 +53,7 @@ export function EnviarRecadoModal({ isOpen, onClose, onSave }: EnviarRecadoModal
 
   const fetchAlunosDaTurma = async () => {
     try {
-      const todosAlunos = await getAllAlunos();
+      const todosAlunos = await dataService.getAlunos();
       const alunosDaTurma = todosAlunos.filter(a => a.turma_id === formData.destinatario_id);
       setAlunos(alunosDaTurma);
     } catch (error) {
@@ -74,6 +75,9 @@ export function EnviarRecadoModal({ isOpen, onClose, onSave }: EnviarRecadoModal
     if (formData.destinatario_tipo !== 'geral' && !formData.destinatario_id) {
       newErrors.destinatario = 'Selecione o destinatário';
     }
+    if (formData.destinatario_tipo === 'aluno' && !formData.aluno_id) {
+      newErrors.destinatario = 'Selecione o aluno';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -84,11 +88,11 @@ export function EnviarRecadoModal({ isOpen, onClose, onSave }: EnviarRecadoModal
 
     setLoading(true);
     try {
-      await createRecado({
+      await dataService.createRecado({
         titulo: formData.titulo,
         conteudo: formData.conteudo,
         destinatario_tipo: formData.destinatario_tipo,
-        destinatario_id: formData.destinatario_tipo === 'geral' ? null : formData.destinatario_id,
+  destinatario_id: formData.destinatario_tipo === 'geral' ? undefined : (formData.destinatario_tipo === 'aluno' ? formData.aluno_id : formData.destinatario_id),
         enviado_por: user!.id
       });
 
@@ -110,6 +114,7 @@ export function EnviarRecadoModal({ isOpen, onClose, onSave }: EnviarRecadoModal
     setFormData({
       destinatario_tipo: 'turma',
       destinatario_id: '',
+      aluno_id: '',
       titulo: '',
       conteudo: ''
     });
@@ -249,8 +254,8 @@ export function EnviarRecadoModal({ isOpen, onClose, onSave }: EnviarRecadoModal
                     Selecionar Aluno *
                   </label>
                   <select
-                    value={formData.destinatario_id}
-                    onChange={(e) => setFormData({ ...formData, destinatario_id: e.target.value })}
+                    value={formData.aluno_id}
+                    onChange={(e) => setFormData({ ...formData, aluno_id: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.destinatario ? 'border-red-300' : 'border-gray-300'
                     }`}
@@ -334,7 +339,7 @@ export function EnviarRecadoModal({ isOpen, onClose, onSave }: EnviarRecadoModal
                   <>
                     <User className="h-4 w-4 text-blue-600" />
                     <span className="text-sm text-blue-700">
-                      Aluno: {alunos.find(a => a.id === formData.destinatario_id)?.nome}
+                      Aluno: {alunos.find(a => a.id === formData.aluno_id)?.nome}
                     </span>
                   </>
                 )}

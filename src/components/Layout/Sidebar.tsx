@@ -30,6 +30,7 @@ import {
   Palette
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 interface SidebarProps {
   currentPage: string;
@@ -82,14 +83,12 @@ const menuItems = {
       id: 'recados', 
       label: 'Comunicados', 
       icon: MessageSquare,
-      badge: '3',
       description: 'Recados da escola'
     },
     { 
       id: 'notificacoes', 
       label: 'Notificações', 
       icon: Bell,
-      badge: '5',
       description: 'Avisos importantes'
     },
     { 
@@ -175,7 +174,6 @@ const menuItems = {
       id: 'notificacoes', 
       label: 'Notificações', 
       icon: Bell,
-      badge: '2',
       description: 'Avisos do sistema'
     },
     { 
@@ -284,7 +282,6 @@ const menuItems = {
           id: 'notificacoes', 
           label: 'Notificações', 
           icon: Bell,
-          badge: '12',
           description: 'Avisos do sistema'
         },
         { 
@@ -370,6 +367,7 @@ const menuItems = {
 
 export function Sidebar({ currentPage, onPageChange, isOpen, onToggle, config, user: propUser }: SidebarProps) {
   const { user: authUser, signOut } = useAuth();
+  const { unreadCount } = useNotifications();
   
   // Usar user passado via props (modo preview) ou user autenticado
   const user = propUser || authUser;
@@ -511,10 +509,23 @@ export function Sidebar({ currentPage, onPageChange, isOpen, onToggle, config, u
                   
                   {/* Badges e indicadores */}
                   <div className="flex items-center space-x-1">
-                    {(sidebarConfig?.showBadges !== false) && item.badge && (
-                      <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-500 text-white text-xs rounded-full font-bold animate-pulse">
-                        {item.badge}
-                      </span>
+                    {(sidebarConfig?.showBadges !== false) && (
+                      (() => {
+                        // Para o item de Notificações, usamos SEMPRE o contador dinâmico
+                        if (item.id === 'notificacoes') {
+                          return unreadCount > 0 ? (
+                            <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-500 text-white text-xs rounded-full font-bold animate-pulse">
+                              {String(unreadCount)}
+                            </span>
+                          ) : null;
+                        }
+                        // Demais itens podem usar badge estática se configurada
+                        return item.badge ? (
+                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-500 text-white text-xs rounded-full font-bold animate-pulse">
+                            {item.badge}
+                          </span>
+                        ) : null;
+                      })()
                     )}
                     {(sidebarConfig?.showBadges !== false) && item.isNew && (
                       <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-500 text-white text-xs rounded-full font-bold">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, AlertCircle, ExternalLink, HelpCircle, Lock, User, School, Monitor, Smartphone, Tablet, Key, Grid, Square, Circle, Layers } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ExternalLink, HelpCircle, Lock, User, School, Monitor, Smartphone, Tablet, Key } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import { HelpInstructionsModal } from './HelpInstructionsModal';
@@ -34,6 +34,7 @@ const defaultLoginConfig: LoginCustomization = {
   // Configurações do Botão do Site
   showSiteButton: true,
   siteButtonText: 'Voltar para o site do Objetivo',
+  siteButtonUrl: 'https://objetivo.br',
 
   
   // Rodapé
@@ -276,6 +277,12 @@ export function LoginForm() {
   const getBackgroundEffectStyles = () => {
     const styles: React.CSSProperties = {};
     
+    // No layout "split", a imagem de fundo deve aparecer apenas no painel esquerdo,
+    // portanto não aplicamos imagem de fundo no container global para evitar duplicação.
+    if (customization.layoutStyle === 'split') {
+      return styles;
+    }
+
     if (customization.backgroundImageUrl) {
       styles.backgroundImage = `url(${customization.backgroundImageUrl})`;
       styles.backgroundSize = 'cover';
@@ -292,7 +299,7 @@ export function LoginForm() {
       {customization.showSiteButton && (
         <div className="absolute top-4 right-4 z-20">
           <a
-            href={customization.siteButtonUrl}
+            href={customization.siteButtonUrl || customization.siteUrl || '#'}
             target="_blank"
             rel="noopener noreferrer"
             className={`flex items-center space-x-2 sm:space-x-3 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all duration-300 text-sm sm:text-base font-bold text-gray-700 hover:text-blue-600 ${getGlassClasses()} ${getShadowClasses()} hover:scale-105`}

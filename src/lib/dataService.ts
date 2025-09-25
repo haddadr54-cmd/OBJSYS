@@ -628,6 +628,19 @@ class DataService {
     return await createRecado(recadoData);
   }
 
+  async updateRecado(id: string, updates: Partial<Recado>): Promise<Recado | null> {
+    if (!this.user || this.user.tipo_usuario === 'pai') {
+      this.throwPermissionError('editar recados');
+    }
+
+    if (!this.isSupabaseConnected) {
+      throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
+    }
+
+    const { updateRecado } = await import('./supabase');
+    return await updateRecado(id, updates);
+  }
+
   async deleteRecado(id: string): Promise<boolean> {
     if (!this.user || this.user.tipo_usuario === 'pai') {
       this.throwPermissionError('excluir recados');

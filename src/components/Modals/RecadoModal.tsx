@@ -20,6 +20,7 @@ export function RecadoModal({ isOpen, onClose, recado, onSave }: RecadoModalProp
   const [formData, setFormData] = useState({
     destinatario_tipo: 'turma' as 'turma' | 'aluno' | 'geral',
     destinatario_id: '',
+    aluno_id: '',
     titulo: '',
     conteudo: ''
   });
@@ -37,7 +38,8 @@ export function RecadoModal({ isOpen, onClose, recado, onSave }: RecadoModalProp
     if (recado) {
       setFormData({
         destinatario_tipo: recado.destinatario_tipo,
-        destinatario_id: recado.destinatario_id || '',
+        destinatario_id: recado.destinatario_tipo === 'aluno' ? '' : (recado.destinatario_id || ''),
+        aluno_id: recado.destinatario_tipo === 'aluno' ? (recado.destinatario_id || '') : '',
         titulo: recado.titulo,
         conteudo: recado.conteudo
       });
@@ -45,6 +47,7 @@ export function RecadoModal({ isOpen, onClose, recado, onSave }: RecadoModalProp
       setFormData({
         destinatario_tipo: 'turma',
         destinatario_id: '',
+        aluno_id: '',
         titulo: '',
         conteudo: ''
       });
@@ -56,6 +59,9 @@ export function RecadoModal({ isOpen, onClose, recado, onSave }: RecadoModalProp
   useEffect(() => {
     if (formData.destinatario_tipo === 'aluno' && formData.destinatario_id) {
       fetchAlunosDaTurma();
+    } else if (formData.destinatario_tipo !== 'aluno') {
+      setAlunos([]);
+      setFormData(prev => ({ ...prev, aluno_id: '' }));
     }
   }, [formData.destinatario_tipo, formData.destinatario_id]);
 
@@ -92,6 +98,9 @@ export function RecadoModal({ isOpen, onClose, recado, onSave }: RecadoModalProp
     if (formData.destinatario_tipo !== 'geral' && !formData.destinatario_id) {
       newErrors.destinatario = 'Selecione o destinatário';
     }
+    if (formData.destinatario_tipo === 'aluno' && !formData.aluno_id) {
+      newErrors.destinatario = 'Selecione o aluno';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -108,13 +117,13 @@ export function RecadoModal({ isOpen, onClose, recado, onSave }: RecadoModalProp
         titulo: formData.titulo,
         conteudo: formData.conteudo,
         destinatario_tipo: formData.destinatario_tipo,
-        destinatario_id: formData.destinatario_tipo === 'geral' ? null : formData.destinatario_id,
+        destinatario_id: formData.destinatario_tipo === 'geral' ? undefined : (formData.destinatario_tipo === 'aluno' ? formData.aluno_id : formData.destinatario_id),
         enviado_por: user!.id
       };
 
       if (recado) {
-        // TODO: Implementar updateRecado
-        console.log('Atualizar recado:', recadoData);
+        await dataService.updateRecado(recado.id, recadoData);
+        console.log('✅ Recado atualizado');
       } else {
         await dataService.createRecado(recadoData);
         console.log('✅ Recado criado');
@@ -138,6 +147,7 @@ export function RecadoModal({ isOpen, onClose, recado, onSave }: RecadoModalProp
     setFormData({
       destinatario_tipo: 'turma',
       destinatario_id: '',
+      aluno_id: '',
       titulo: '',
       conteudo: ''
     });
@@ -284,8 +294,8 @@ export function RecadoModal({ isOpen, onClose, recado, onSave }: RecadoModalProp
                     Selecionar Aluno *
                   </label>
                   <select
-                    value={formData.destinatario_id}
-                    onChange={(e) => setFormData({ ...formData, destinatario_id: e.target.value })}
+                    value={formData.aluno_id}
+                    onChange={(e) => setFormData({ ...formData, aluno_id: e.target.value })}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.destinatario ? 'border-red-300' : 'border-gray-300'
                     }`}
@@ -369,7 +379,7 @@ export function RecadoModal({ isOpen, onClose, recado, onSave }: RecadoModalProp
                   <>
                     <User className="h-4 w-4 text-blue-600" />
                     <span className="text-sm text-blue-700">
-                      Aluno: {alunos.find(a => a.id === formData.destinatario_id)?.nome}
+                      Aluno: {alunos.find(a => a.id === formData.aluno_id)?.nome}
                     </span>
                   </>
                 )}

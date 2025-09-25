@@ -46,28 +46,26 @@ jobs:
               ' CHANGELOG.md >> RELEASE_NOTES.md
               # If nothing was extracted (empty or only header), fallback to short summary
               if ! grep -q '[^[:space:]]' RELEASE_NOTES.md || [ $(wc -l < RELEASE_NOTES.md) -lt 2 ]; then
-                cat > RELEASE_NOTES.md << 'EOF'
-## Highlights
-
-- Dev orchestrator (scripts/dev-all.js): porta fixa 5173, restart com debounce e shutdown limpo.
-- Backend Express com /health e encerramento gracioso.
-- App React + Vite + TypeScript + Tailwind com build e typecheck OK.
-- ESLint baseline mais permissivo; correções de regras de hooks.
-- Script de auditoria Supabase (scripts/provision-audit.cjs).
-- GitHub Actions: CI, auditoria e release manuais.
-EOF
+                printf "%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n" \
+                  "## Highlights" \
+                  "- Dev orchestrator (scripts/dev-all.js): porta fixa 5173, restart com debounce e shutdown limpo." \
+                  "- Backend Express com /health e encerramento gracioso." \
+                  "- App React + Vite + TypeScript + Tailwind com build e typecheck OK." \
+                  "- ESLint baseline mais permissivo; correções de regras de hooks." \
+                  "- Script de auditoria Supabase (scripts/provision-audit.cjs)." \
+                  "- GitHub Actions: CI, auditoria e release manuais." \
+                  > RELEASE_NOTES.md
               fi
             else
-              cat > RELEASE_NOTES.md << 'EOF'
-## Highlights
-
-- Dev orchestrator (scripts/dev-all.js): porta fixa 5173, restart com debounce e shutdown limpo.
-- Backend Express com /health e encerramento gracioso.
-- App React + Vite + TypeScript + Tailwind com build e typecheck OK.
-- ESLint baseline mais permissivo; correções de regras de hooks.
-- Script de auditoria Supabase (scripts/provision-audit.cjs).
-- GitHub Actions: CI, auditoria e release manuais.
-EOF
+              printf "%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n" \
+                "## Highlights" \
+                "- Dev orchestrator (scripts/dev-all.js): porta fixa 5173, restart com debounce e shutdown limpo." \
+                "- Backend Express com /health e encerramento gracioso." \
+                "- App React + Vite + TypeScript + Tailwind com build e typecheck OK." \
+                "- ESLint baseline mais permissivo; correções de regras de hooks." \
+                "- Script de auditoria Supabase (scripts/provision-audit.cjs)." \
+                "- GitHub Actions: CI, auditoria e release manuais." \
+                > RELEASE_NOTES.md
             fi
           fi
           echo "notes=RELEASE_NOTES.md" >> $GITHUB_OUTPUT

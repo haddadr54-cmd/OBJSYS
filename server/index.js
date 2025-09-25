@@ -12,6 +12,27 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', ts: new Date().toISOString() });
 });
 
+// Dev stubs para endpoints de WhatsApp usados no frontend
+app.get('/api/whatsapp/status', (_req, res) => {
+  res.json({ status: 'disconnected' });
+});
+
+app.post('/api/whatsapp/connect', (_req, res) => {
+  res.json({ ok: true, message: 'Conexão simulada (dev stub)' });
+});
+
+app.post('/api/whatsapp/disconnect', (_req, res) => {
+  res.json({ ok: true, message: 'Desconectado (dev stub)' });
+});
+
+app.post('/api/whatsapp/send-message', (_req, res) => {
+  res.json({ ok: true, messageId: 'stub-' + Date.now() });
+});
+
+app.post('/api/whatsapp/send-bulk', (_req, res) => {
+  res.json({ ok: true, sent: 0, failures: [] });
+});
+
 const port = process.env.PORT || 4000;
 const httpServer = app.listen(port, () => console.log(`[server] Listening on port ${port}`));
 

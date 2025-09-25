@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Bell, 
   Search, 
   Filter, 
   Check, 
   CheckCircle, 
-  X, 
-  MessageSquare, 
-  Calendar, 
-  FileText, 
-  User, 
+  MessageSquare,
+  Calendar,
+  FileText,
   Clock, 
   Eye,
   Trash2,
@@ -19,152 +17,29 @@ import {
   Info,
   Settings,
   RefreshCw,
-  Download
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useDataService } from '../../lib/dataService';
+import { useNotifications, type NotificationItem } from '../../contexts/NotificationContext';
 import { ItemDetailModal } from '../Modals/ItemDetailModal';
-import type { Recado, ProvaTarefa, Material } from '../../lib/supabase';
 
-interface Notification {
-  id: string;
-  type: 'recado' | 'prova_tarefa' | 'material' | 'sistema';
-  title: string;
-  message: string;
-  data: any; // Dados do item original
-  timestamp: string;
-  read: boolean;
-  priority: 'baixa' | 'normal' | 'alta' | 'urgente';
-  category: string;
-  icon: any;
-  color: string;
-  actionUrl?: string;
-}
+// Consumirá NotificationItem do NotificationContext
 
 export function NotificacoesPage() {
-  const { user, isSupabaseConnected } = useAuth();
-  const dataService = useDataService(user, isSupabaseConnected);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [filtros, setFiltros] = useState({
+  const { notifications, unreadCount, markAsRead, markAsUnread, markAllAsRead, deleteById, deleteRead, bulkDelete, refresh } = useNotifications();
+  const [filtros, setFiltros] = React.useState({
     busca: '',
     tipo: '',
     status: '',
     prioridade: '',
     periodo: 'todos'
   });
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [bulkSelection, setBulkSelection] = useState<string[]>([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [selectedNotification, setSelectedNotification] = React.useState<NotificationItem | null>(null);
+  const [showDetailModal, setShowDetailModal] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [bulkSelection, setBulkSelection] = React.useState<string[]>([]);
+  const [showBulkActions, setShowBulkActions] = React.useState(false);
+  // refresh fica disponível via contexto se precisar, loading local só para ações massivas.
 
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    }
-  }, [user]);
-
-  const fetchNotifications = async () => {
-    try {
-      const [recados, provasTarefas, materiais] = await Promise.all([
-        dataService.getRecados(),
-        dataService.getProvasTarefas(),
-        dataService.getMateriais()
-      ]);
-
-      const notificationsData: Notification[] = [];
-
-      // Converter recados em notificações
-      recados.forEach(recado => {
-        notificationsData.push({
-          id: `recado-${recado.id}`,
-          type: 'recado',
-          title: recado.titulo,
-          message: recado.conteudo,
-          data: recado,
-          timestamp: recado.data_envio,
-          read: Math.random() > 0.3, // Simular status de leitura
-          priority: 'normal',
-          category: 'Comunicação',
-          icon: MessageSquare,
-          color: 'text-purple-600'
-        });
-      });
-
-      // Converter provas/tarefas em notificações
-      provasTarefas.forEach(prova => {
-        const hoje = new Date().toISOString().split('T')[0];
-        const dataProva = prova.data;
-        const diffTime = new Date(dataProva).getTime() - new Date(hoje).getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        let priority: 'baixa' | 'normal' | 'alta' | 'urgente' = 'normal';
-        if (diffDays <= 1) priority = 'urgente';
-        else if (diffDays <= 3) priority = 'alta';
-        else if (diffDays <= 7) priority = 'normal';
-        else priority = 'baixa';
-
-        notificationsData.push({
-          id: `prova-${prova.id}`,
-          type: 'prova_tarefa',
-          title: `${prova.tipo === 'prova' ? 'Prova' : 'Tarefa'}: ${prova.titulo}`,
-          message: `Data: ${new Date(dataProva).toLocaleDateString('pt-BR')} - ${prova.disciplina?.nome}`,
-          data: prova,
-          timestamp: prova.criado_em,
-          read: Math.random() > 0.4,
-          priority,
-          category: 'Agenda',
-          icon: Calendar,
-          color: prova.tipo === 'prova' ? 'text-red-600' : 'text-blue-600'
-        });
-      });
-
-      // Converter materiais em notificações
-      materiais.forEach(material => {
-        notificationsData.push({
-          id: `material-${material.id}`,
-          type: 'material',
-          title: `Novo Material: ${material.titulo}`,
-          message: `${material.tipo.toUpperCase()} - ${material.disciplina?.nome}`,
-          data: material,
-          timestamp: material.criado_em,
-          read: Math.random() > 0.5,
-          priority: 'normal',
-          category: 'Materiais',
-          icon: FileText,
-          color: 'text-green-600'
-        });
-      });
-
-      // Adicionar notificações do sistema
-      if (user.tipo_usuario === 'admin') {
-        notificationsData.push({
-          id: 'sistema-1',
-          type: 'sistema',
-          title: 'Backup Automático Realizado',
-          message: 'Backup diário executado com sucesso às 02:00',
-          data: null,
-          timestamp: new Date().toISOString(),
-          read: false,
-          priority: 'baixa',
-          category: 'Sistema',
-          icon: Settings,
-          color: 'text-gray-600'
-        });
-      }
-
-      // Ordenar por timestamp (mais recentes primeiro)
-      notificationsData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-      setNotifications(notificationsData);
-    } catch (error) {
-      console.error('Erro ao carregar notificações:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const notificationsFiltradas = notifications.filter(notification => {
+  const notificationsFiltradas = React.useMemo(() => notifications.filter(notification => {
     const matchBusca = !filtros.busca || 
       notification.title.toLowerCase().includes(filtros.busca.toLowerCase()) ||
       notification.message.toLowerCase().includes(filtros.busca.toLowerCase());
@@ -194,41 +69,32 @@ export function NotificacoesPage() {
     }
     
     return matchBusca && matchTipo && matchStatus && matchPrioridade && matchPeriodo;
-  });
+  }), [notifications, filtros]);
 
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(n => 
-        n.id === notificationId ? { ...n, read: true } : n
-      )
-    );
-  };
-
-  const markAsUnread = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(n => 
-        n.id === notificationId ? { ...n, read: false } : n
-      )
-    );
-  };
-
-  const deleteNotification = (notificationId: string) => {
+  const deleteNotification = async (notificationId: string) => {
     if (confirm('Tem certeza que deseja excluir esta notificação?')) {
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      setLoading(true);
+      try {
+        const ok = await deleteById(notificationId);
+        if (!ok) alert('Não foi possível excluir a notificação. Verifique suas permissões ou tente novamente.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const deleteAllRead = () => {
+  const deleteAllRead = async () => {
     if (confirm('Tem certeza que deseja excluir todas as notificações lidas?')) {
-      setNotifications(prev => prev.filter(n => !n.read));
+      setLoading(true);
+      try {
+        await deleteRead();
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = (notification: NotificationItem) => {
     // Marcar como lida
     markAsRead(notification.id);
     
@@ -256,18 +122,22 @@ export function NotificacoesPage() {
   };
 
   const bulkMarkAsRead = () => {
-    setNotifications(prev => 
-      prev.map(n => 
-        bulkSelection.includes(n.id) ? { ...n, read: true } : n
-      )
-    );
+    bulkSelection.forEach(id => markAsRead(id));
     setBulkSelection([]);
   };
 
-  const bulkDelete = () => {
+  const bulkDeleteAction = async () => {
     if (confirm(`Tem certeza que deseja excluir ${bulkSelection.length} notificação(ões)?`)) {
-      setNotifications(prev => prev.filter(n => !bulkSelection.includes(n.id)));
-      setBulkSelection([]);
+      setLoading(true);
+      try {
+        const res = await bulkDelete(bulkSelection);
+        if (res.failedIds.length > 0) {
+          alert(`Algumas notificações não puderam ser excluídas: ${res.failedIds.length}`);
+        }
+        setBulkSelection([]);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -301,7 +171,6 @@ export function NotificacoesPage() {
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
   const totalCount = notifications.length;
 
   if (loading) {
@@ -341,7 +210,7 @@ export function NotificacoesPage() {
             {showBulkActions ? 'Cancelar Seleção' : 'Seleção em Massa'}
           </button>
           <button
-            onClick={fetchNotifications}
+            onClick={async () => { setLoading(true); await refresh(); setLoading(false); }}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
@@ -499,7 +368,7 @@ export function NotificacoesPage() {
                   <span>Marcar como Lidas</span>
                 </button>
                 <button
-                  onClick={bulkDelete}
+                  onClick={bulkDeleteAction}
                   className="flex items-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -550,7 +419,7 @@ export function NotificacoesPage() {
           </div>
         ) : (
           notificationsFiltradas.map((notification) => {
-            const Icon = notification.icon;
+            const Icon = notification.type === 'recado' ? MessageSquare : notification.type === 'prova_tarefa' ? Calendar : notification.type === 'material' ? FileText : Settings;
             const isSelected = bulkSelection.includes(notification.id);
             
             return (

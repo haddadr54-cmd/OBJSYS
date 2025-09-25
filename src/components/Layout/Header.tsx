@@ -1,5 +1,6 @@
 import React from 'react';
-import { Menu, Bell, X, Check, MessageSquare, Calendar, FileText, Search, Filter } from 'lucide-react';
+import { Menu, Bell, X, MessageSquare, Calendar, FileText, Search } from 'lucide-react';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -11,52 +12,9 @@ interface HeaderProps {
 export function Header({ onMenuToggle, title, showSearch = false, onSearch }: HeaderProps) {
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [notifications, setNotifications] = React.useState([
-    {
-      id: '1',
-      type: 'recado',
-      title: 'Reunião de Pais - 5º Ano',
-      message: 'Reunião marcada para sábado às 9h',
-      time: '2 horas atrás',
-      read: false,
-      icon: MessageSquare,
-      color: 'text-purple-600'
-    },
-    {
-      id: '2',
-      type: 'prova',
-      title: 'Prova de Matemática',
-      message: 'Prova agendada para próxima terça-feira',
-      time: '1 dia atrás',
-      read: false,
-      icon: Calendar,
-      color: 'text-blue-600'
-    },
-    {
-      id: '3',
-      type: 'material',
-      title: 'Novo Material Disponível',
-      message: 'Apostila de Ciências foi adicionada',
-      time: '2 dias atrás',
-      read: true,
-      icon: FileText,
-      color: 'text-green-600'
-    }
-  ]);
+  const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(n => 
-        n.id === notificationId ? { ...n, read: true } : n
-      )
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
+  // markAsRead e markAllAsRead agora vêm do NotificationContext
 
   // Debug function para testar o clique do sino
   const handleBellClick = () => {
@@ -169,7 +127,7 @@ export function Header({ onMenuToggle, title, showSearch = false, onSearch }: He
                   ) : (
                     <div className="divide-y divide-gray-50">
                       {notifications.map((notification) => {
-                        const Icon = notification.icon;
+                        const Icon = notification.type === 'recado' ? MessageSquare : notification.type === 'prova_tarefa' ? Calendar : notification.type === 'material' ? FileText : Bell;
                         return (
                           <div
                             key={notification.id}
@@ -181,10 +139,10 @@ export function Header({ onMenuToggle, title, showSearch = false, onSearch }: He
                             <div className="flex items-start space-x-3 sm:space-x-4">
                               <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg ${
                                 notification.type === 'recado' ? 'bg-purple-100' :
-                                notification.type === 'prova' ? 'bg-blue-100' :
+                                notification.type === 'prova_tarefa' ? 'bg-blue-100' :
                                 'bg-green-100'
                               } flex-shrink-0`}>
-                                <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${notification.color}`} />
+                                <Icon className={`h-4 w-4 ${notification.color}`} />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
@@ -197,11 +155,9 @@ export function Header({ onMenuToggle, title, showSearch = false, onSearch }: He
                                     <div className="w-2 h-2 sm:w-3 sm:h-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex-shrink-0 animate-pulse shadow-lg"></div>
                                   )}
                                 </div>
-                                <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2 line-clamp-2 font-medium">
-                                  {notification.message}
-                                </p>
+                                <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2 line-clamp-2 font-medium">{notification.message}</p>
                                 <p className="text-xs text-gray-500 mt-1 sm:mt-2 font-semibold">
-                                  {notification.time}
+                                  {new Date(notification.timestamp).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                 </p>
                               </div>
                             </div>

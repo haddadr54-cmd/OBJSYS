@@ -75,8 +75,9 @@ interface SidebarManagerProps {
 }
 
 // Menu items baseado no tipo de usuário
-const getMenuItems = (userType: string) => {
-  const menuItems = {
+type MenuKey = 'pai' | 'professor' | 'admin';
+const getMenuItems = (userType: MenuKey) => {
+  const menuItems: Record<MenuKey, any[]> = {
     pai: [
       { 
         id: 'dashboard', 
@@ -107,14 +108,12 @@ const getMenuItems = (userType: string) => {
         id: 'recados', 
         label: 'Comunicados', 
         icon: MessageSquare,
-        badge: '3',
         description: 'Recados da escola'
       },
       { 
         id: 'notificacoes', 
         label: 'Notificações', 
         icon: Bell,
-        badge: '5',
         description: 'Avisos importantes'
       },
       { 
@@ -200,7 +199,6 @@ const getMenuItems = (userType: string) => {
         id: 'notificacoes', 
         label: 'Notificações', 
         icon: Bell,
-        badge: '2',
         description: 'Avisos do sistema'
       },
       { 
@@ -309,7 +307,6 @@ const getMenuItems = (userType: string) => {
             id: 'notificacoes', 
             label: 'Notificações', 
             icon: Bell,
-            badge: '12',
             description: 'Avisos do sistema'
           },
           { 
@@ -601,7 +598,7 @@ export function SidebarManager({ currentPage, onPageChange, isOpen, onToggle, mo
 
   if (!activeUser) return null;
 
-  const menuItems = getMenuItems(activeUser.tipo_usuario);
+  const menuItems = getMenuItems((activeUser.tipo_usuario as MenuKey) || 'pai');
   const commonProps = {
     currentPage,
     onPageChange,

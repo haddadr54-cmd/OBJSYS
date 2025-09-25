@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LogoProvider } from './contexts/LogoContext';
 import { GlobalConfigProvider } from './utils/configManager.tsx';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { LoginForm } from './components/Auth/LoginForm';
 import { SidebarManager } from './components/Layout/SidebarManager';
 import { ParentDashboard } from './components/Dashboard/ParentDashboard';
@@ -182,7 +183,9 @@ function App() {
     <LogoProvider>
       <AuthProvider>
         <GlobalConfigProvider>
-          <AppContent />
+          <NotificationProvider>
+            <AppContent />
+          </NotificationProvider>
           {!isSupabaseConfigured && (
             <div className="fixed bottom-3 right-3 z-50 select-none">
               <div className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 shadow border border-amber-200">

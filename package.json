@@ -16,8 +16,9 @@
     "health": "node scripts/health-check.cjs",
     "provision:audit": "node scripts/provision-audit.cjs",
     "typecheck": "tsc --noEmit",
-    "lint:fix": "eslint . --fix"
-    ,"dev:node": "node scripts/dev-all.js"
+    "lint:fix": "eslint . --fix",
+    "dev:node": "node scripts/dev-all.js",
+    "start": "concurrently -k -n server,web -c cyan,magenta \"npm:server\" \"npm:dev\" && node scripts/health-check.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

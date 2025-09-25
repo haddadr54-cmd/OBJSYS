@@ -1,5 +1,22 @@
 # 📱 WhatsApp Z-API Integration
 
+> Produção (Vercel + Supabase)
+
+1) Configure variáveis no Vercel (Project Settings → Environment Variables):
+  - VITE_SUPABASE_URL = https://<your-project>.supabase.co
+  - VITE_SUPABASE_ANON_KEY = <anon key>
+  - Opcional: VITE_DEBUG_REALTIME = true (para logs de realtime no cliente)
+
+2) Realtime no Supabase:
+  - Garanta que a publicação `supabase_realtime` inclua as tabelas: recados, provas_tarefas, materiais, notas.
+  - Este repo inclui um migration auxiliar: `supabase/migrations/20250924210000_enable_realtime.sql`.
+  - Aplique com o CLI do Supabase (ou ajuste na UI):
+    supabase db push
+
+3) Deploy no Vercel:
+  - O workflow `.github/workflows/vercel-deploy.yml` já puxa envs do Vercel; como fallback, usa secrets do GitHub para gerar `.env.production` (Vite).
+  - As rotas SPA são servidas pelo Vercel automaticamente (Vite build SPA). 
+
 Sistema de integração com WhatsApp usando Z-API para automação de mensagens.
 
 ## 🚀 Como Usar

@@ -118,8 +118,21 @@ export interface Presenca {
   criado_em: string;
 }
 
+// Tipagem explícita do snapshot de dados iniciais
+type InitialData = {
+  usuarios: Usuario[];
+  turmas: Turma[];
+  alunos: Aluno[];
+  disciplinas: Disciplina[];
+  notas: Nota[];
+  provasTarefas: ProvaTarefa[];
+  materiais: Material[];
+  recados: Recado[];
+  presencas: Presenca[];
+};
+
 // Dados iniciais do sistema
-const initialData = {
+const initialData: InitialData = {
   usuarios: [
     {
       id: 'user-1',
@@ -537,7 +550,7 @@ const initialData = {
 
 // Classe para gerenciar o banco de dados local
 class LocalDatabase {
-  private data: typeof initialData;
+  private data: InitialData;
 
   constructor() {
     // Carregar dados do localStorage ou usar dados iniciais
@@ -568,7 +581,7 @@ class LocalDatabase {
       id: `user-${Date.now()}`,
       criado_em: new Date().toISOString()
     };
-    this.data.usuarios.push(newUsuario);
+  this.data.usuarios.push(newUsuario);
     this.save();
     return newUsuario;
   }
@@ -635,11 +648,11 @@ class LocalDatabase {
 
   // Métodos para Turmas
   getTurmas(): Turma[] {
-    return this.data.turmas;
+  return this.data.turmas;
   }
 
   getTurmasByProfessor(professorId: string): Turma[] {
-    return this.data.turmas.filter(t => t.professor_id === professorId);
+  return this.data.turmas.filter(t => t.professor_id === professorId);
   }
 
   createTurma(turma: Omit<Turma, 'id' | 'criado_em'>): Turma {
@@ -648,7 +661,7 @@ class LocalDatabase {
       id: `turma-${Date.now()}`,
       criado_em: new Date().toISOString()
     };
-    this.data.turmas.push(newTurma);
+  this.data.turmas.push(newTurma);
     this.save();
     return newTurma;
   }
@@ -659,7 +672,7 @@ class LocalDatabase {
     
     this.data.turmas[index] = { ...this.data.turmas[index], ...updates };
     this.save();
-    return this.data.turmas[index];
+  return this.data.turmas[index];
   }
 
   deleteTurma(id: string): boolean {
@@ -682,7 +695,7 @@ class LocalDatabase {
       id: `disc-${Date.now()}`,
       criado_em: new Date().toISOString()
     };
-    this.data.disciplinas.push(newDisciplina);
+  this.data.disciplinas.push(newDisciplina);
     this.save();
     return newDisciplina;
   }
@@ -724,7 +737,7 @@ class LocalDatabase {
       id: `nota-${Date.now()}`,
       criado_em: new Date().toISOString()
     };
-    this.data.notas.push(newNota);
+  this.data.notas.push(newNota);
     this.save();
     return newNota;
   }
@@ -733,7 +746,7 @@ class LocalDatabase {
     const index = this.data.notas.findIndex(n => n.id === id);
     if (index === -1) return null;
     
-    this.data.notas[index] = { ...this.data.notas[index], ...updates };
+  this.data.notas[index] = { ...this.data.notas[index], ...updates } as Nota;
     this.save();
     return this.data.notas[index];
   }
@@ -762,7 +775,7 @@ class LocalDatabase {
       id: `prova-${Date.now()}`,
       criado_em: new Date().toISOString()
     };
-    this.data.provasTarefas.push(newProvaTarefa);
+  this.data.provasTarefas.push(newProvaTarefa);
     this.save();
     return newProvaTarefa;
   }
@@ -782,7 +795,7 @@ class LocalDatabase {
       id: `material-${Date.now()}`,
       criado_em: new Date().toISOString()
     };
-    this.data.materiais.push(newMaterial);
+  this.data.materiais.push(newMaterial);
     this.save();
     return newMaterial;
   }
@@ -802,31 +815,32 @@ class LocalDatabase {
       const turmaIds = alunos.map(a => a.turma_id);
       const alunoIds = alunos.map(a => a.id);
       
-      return this.data.recados.filter(r => 
-        r.tipo === 'geral' || 
-        (r.tipo === 'turma' && r.turma_id && turmaIds.includes(r.turma_id)) ||
-        (r.tipo === 'individual' && r.aluno_id && alunoIds.includes(r.aluno_id))
-      );
+      return this.data.recados.filter((r) => {
+        if (r.tipo === 'geral') return true;
+        if (r.tipo === 'turma') return !!r.turma_id && turmaIds.includes(r.turma_id);
+        if (r.tipo === 'individual') return !!r.aluno_id && alunoIds.includes(r.aluno_id);
+        return false;
+      });
     }
     
     return this.data.recados.filter(r => r.autor_id === userId);
   }
 
   createRecado(recado: Omit<Recado, 'id' | 'criado_em'>): Recado {
-    const newRecado: Recado = {
+  const newRecado: Recado = {
       ...recado,
       id: `recado-${Date.now()}`,
       criado_em: new Date().toISOString()
     };
-    (this.data.recados as any).push(newRecado);
+  this.data.recados.push(newRecado);
     this.save();
     return newRecado;
   }
 
   deleteRecado(id: string): boolean {
-    const index = (this.data.recados as any).findIndex((r: any) => r.id === id);
+  const index = this.data.recados.findIndex((r) => r.id === id);
     if (index === -1) return false;
-    (this.data.recados as any).splice(index, 1);
+  this.data.recados.splice(index, 1);
     this.save();
     return true;
   }

@@ -12,16 +12,37 @@ import { existsSync, writeFileSync, rmSync } from 'node:fs';
 import http from 'node:http';
 
 const LOCK_PATH = '.devlock';
-if (existsSync(LOCK_PATH)) {
-  console.error('[dev-all] Outra instância detectada (.devlock existe). Se for zumbi, apague o arquivo e reexecute.');
-  process.exit(1);
+// Helper probe to check if a URL responds 200 quickly (used before readiness too)
+async function quickProbe(url){
+  return await new Promise(res => {
+    const req = http.get(url, r => { r.resume(); res(r.statusCode === 200); });
+    req.on('error', () => res(false));
+    req.setTimeout(1500, () => { req.destroy(); res(false); });
+  });
 }
-writeFileSync(LOCK_PATH, String(Date.now()));
+
+if (existsSync(LOCK_PATH)) {
+  // If services are already up, treat as success instead of erroring out.
+  (async () => {
+    const apiOk = await quickProbe('http://localhost:4000/health');
+    const webOk = await quickProbe('http://localhost:5173/');
+    if (apiOk && webOk) {
+      console.log('[dev-all] Ambiente já está em execução (lock presente). ✅');
+      process.exit(0);
+    }
+    // Stale lock: remove and continue boot
+    try { rmSync(LOCK_PATH); } catch {}
+    writeFileSync(LOCK_PATH, String(Date.now()));
+    boot();
+  })();
+} else {
+  writeFileSync(LOCK_PATH, String(Date.now()));
+}
 
 const processes = new Map(); // name -> child process
 let shuttingDown = false;
 const restartCounts = { api: 0, web: 0 };
-const MAX_RESTARTS = 3;
+const MAX_RESTARTS = 5;
 const RESTART_DEBOUNCE_MS = 1200;
 const lastStart = { api: 0, web: 0 };
 let readinessPrinted = false;
@@ -45,13 +66,8 @@ function spawnProcess(name, cmd, args, opts={}){
     processes.delete(name);
     if (shuttingDown) return;
     log('dev-all', `Processo ${name} saiu (code=${code} signal=${signal}).\n`);
-    const failed = code !== 0;
-    if (!failed) {
-      // Encerramento voluntário — derruba todo ambiente para não ficar inconsistente.
-      log('dev-all', `Encerramento limpo de ${name}; desligando orquestrador.\n`);
-      shutdown(0);
-      return;
-    }
+    // Em Windows, alguns processos podem sair com code 0 ao perder o terminal;
+    // tratamos ambos (falha e saída limpa) como candidatos a restart controlado.
     if (restartCounts[name] >= MAX_RESTARTS) {
       log('dev-all', `Limite de reinícios atingido para ${name}. Encerrando tudo.\n`);
       shutdown(code || 1);
@@ -117,6 +133,12 @@ function portCheck(port){
 }
 
 async function startApi(){
+  // If API already running, don't spawn another instance
+  const alreadyUp = await quickProbe('http://localhost:4000/health');
+  if (alreadyUp) {
+    log('dev-all', 'API já está em execução em http://localhost:4000 — não será iniciado outro processo.\n');
+    return;
+  }
   spawnProcess('api', 'node', ['server/index.js']);
 }
 
@@ -127,25 +149,41 @@ async function startWeb(){
     log('dev-all', `Porta ${desiredPort} já está em uso. Aborte a outra instância ou libere a porta (evitando fallback automático).\n`);
     return; // não iniciar duplicado em outra porta silenciosa
   }
-  const viteCmdPath = process.platform === 'win32'
-    ? resolve(process.cwd(), 'node_modules/.bin/vite.cmd')
-    : resolve(process.cwd(), 'node_modules/.bin/vite');
-  if (process.platform === 'win32') spawnProcess('web', `"${viteCmdPath}"`, []); else spawnProcess('web', viteCmdPath, []);
+  if (process.platform === 'win32') {
+    // Windows: use npm from PATH with shell
+    spawnProcess('web', 'npm', ['run', 'dev'], { shell: true });
+  } else {
+    const viteBin = resolve(process.cwd(), 'node_modules/.bin/vite');
+    spawnProcess('web', viteBin, []);
+  }
 }
 
-(async () => {
+function boot(){
   startApi();
   startWeb();
-  log('dev-all', 'Aguardando readiness (backend /health e frontend /)...\n');
-  const apiOk = await waitFor('http://localhost:4000/health');
-  if (!apiOk) log('dev-all', 'Backend não respondeu dentro do tempo limite.\n');
-  const webOk = await waitFor('http://localhost:5173/');
-  if (!webOk) log('dev-all', 'Frontend não respondeu dentro do tempo limite.\n');
-  if (apiOk && webOk && !readinessPrinted){
-    readinessPrinted = true;
-    log('dev-all', '✅ Sistema pronto (backend + frontend).\n');
+  (async () => {
+    log('dev-all', 'Aguardando readiness (backend /health e frontend /)...\n');
+    const apiOk = await waitFor('http://localhost:4000/health');
+    if (!apiOk) log('dev-all', 'Backend não respondeu dentro do tempo limite.\n');
+    const webOk = await waitFor('http://localhost:5173/');
+    if (!webOk) log('dev-all', 'Frontend não respondeu dentro do tempo limite.\n');
+    if (apiOk && webOk && !readinessPrinted){
+      readinessPrinted = true;
+      log('dev-all', '✅ Sistema pronto (backend + frontend).\n');
+    }
+  })();
+}
+
+// If we didn't early-return due to existing lock+healthy, ensure normal boot happens
+if (!existsSync(LOCK_PATH)) {
+  // Already handled above. No-op
+} else {
+  // When lock created fresh, start boot unless we already started within the stale-lock branch
+  // Detect if boot already started by checking readinessPrinted or processes map size
+  if (processes.size === 0) {
+    boot();
   }
-})();
+}
 
 // Fail-safe: remove lock no exit inesperado
 process.on('exit', () => { try { rmSync(LOCK_PATH); } catch {} });

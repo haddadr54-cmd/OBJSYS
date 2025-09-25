@@ -123,7 +123,7 @@ export interface Recado {
   conteudo: string;
   data_envio: string;
   destinatario_tipo: 'aluno' | 'turma' | 'geral';
-  destinatario_id?: string;
+  destinatario_id?: string | null;
   enviado_por: string;
   autor?: Usuario;
 }
