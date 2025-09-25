@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '../../lib/api';
 import { 
   MessageCircle, 
   Send, 
@@ -90,7 +91,7 @@ export function WhatsAppPage() {
 
   const checkApiStatus = async () => {
     try {
-      const response = await fetch('/api/whatsapp/status');
+      const response = await apiFetch('/api/whatsapp/status');
       
       if (!response.ok) {
         throw new Error(`API retornou status ${response.status}`);
@@ -118,7 +119,7 @@ export function WhatsAppPage() {
     setSuccess('');
     
     try {
-      const response = await fetch('/api/whatsapp/connect', {
+      const response = await apiFetch('/api/whatsapp/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -132,7 +133,7 @@ export function WhatsAppPage() {
         // Se ainda não conectado, verificar status periodicamente
         if (!data.connected) {
           const checkConnection = setInterval(async () => {
-            const statusResponse = await fetch('/api/whatsapp/status');
+            const statusResponse = await apiFetch('/api/whatsapp/status');
             const statusData = await statusResponse.json();
             
             if (statusResponse.ok) {
@@ -164,7 +165,7 @@ export function WhatsAppPage() {
     setError('');
     
     try {
-      const response = await fetch('/api/whatsapp/disconnect', {
+      const response = await apiFetch('/api/whatsapp/disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -200,7 +201,7 @@ export function WhatsAppPage() {
       // Formatar número para Z-API (apenas números)
       const cleanNumber = singleNumber.replace(/\D/g, '');
       
-      const response = await fetch('/api/whatsapp/send-message', {
+      const response = await apiFetch('/api/whatsapp/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -246,7 +247,7 @@ export function WhatsAppPage() {
     try {
       const cleanNumbers = numbers.map(n => n.replace(/\D/g, ''));
       
-      const response = await fetch('/api/whatsapp/send-bulk', {
+      const response = await apiFetch('/api/whatsapp/send-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
