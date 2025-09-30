@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  Home, 
-  Users, 
-  GraduationCap,
-  BookOpen,
-  Settings,
   LogOut,
   X,
-  Bell,
   Search,
   Star,
   ChevronDown,
@@ -16,7 +10,7 @@ import {
   Zap,
   TrendingUp
 } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/auth';
 
 interface ModernSidebarProps {
   currentPage: string;
@@ -40,14 +34,7 @@ export function ModernSidebar({ currentPage, onPageChange, isOpen, onToggle, men
   const showDescriptions = config?.showDescriptions !== false;
   const showUserInfo = config?.showUserInfo !== false;
   
-  console.log('🎨 [ModernSidebar] Configurações aplicadas:', {
-    showSearch,
-    showFavorites,
-    showUserInfo,
-    showBadges,
-    showDescriptions,
-    config
-  });
+  // Config flags are derived above; avoid noisy console logs in production
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections(prev => 
@@ -65,7 +52,7 @@ export function ModernSidebar({ currentPage, onPageChange, isOpen, onToggle, men
     );
   };
 
-  const renderMenuItem = (item: any, level: number = 0) => {
+  const renderMenuItem = (item: any, level: number = 0): React.ReactNode => {
     const isActive = currentPage === item.id;
     const isExpanded = expandedSections.includes(item.id);
     const isFavorite = favorites.includes(item.id);
@@ -73,8 +60,9 @@ export function ModernSidebar({ currentPage, onPageChange, isOpen, onToggle, men
     const Icon = item.icon;
 
     return (
-      <li key={item.id} className={level > 0 ? 'ml-4' : ''}>
-        <div className="relative group">
+      <>
+        <li key={item.id} className={level > 0 ? 'ml-4' : ''}>
+          <div className="relative group">
           <button
             onClick={() => {
               if (hasChildren) {
@@ -164,15 +152,16 @@ export function ModernSidebar({ currentPage, onPageChange, isOpen, onToggle, men
               )}
             </div>
           </button>
-
-          {/* Submenu */}
-          {hasChildren && isExpanded && (
-            <div className="mt-2 ml-4 space-y-1 border-l-2 border-white/20 pl-4">
-              {item.children.map((child: any) => renderMenuItem(child, level + 1))}
-            </div>
-          )}
-        </div>
-      </li>
+          </div>
+        </li>
+        
+        {/* Submenu items - rendered as separate li elements to avoid nesting */}
+        {hasChildren && isExpanded && item.children.map((child: any) => (
+          <React.Fragment key={`submenu-${child.id}`}>
+            {renderMenuItem(child, level + 1)}
+          </React.Fragment>
+        ))}
+      </>
     );
   };
 

@@ -2,7 +2,7 @@
 // This reduces duplicated ad-hoc conversions scattered across components and dataService.
 // Add new mappings here as entities evolve.
 
-import type { Nota, Recado, Material, ProvaTarefa } from './supabase';
+import type { Nota, Recado, Material, ProvaTarefa } from './supabase.types';
 
 // Offline nota shape example (value guessing from current localDatabase usage):
 // { id, aluno_id, disciplina_id, bimestre, valor, descricao, criado_em }
@@ -13,7 +13,11 @@ export const mapOfflineNotaToOnline = (n: any): Nota => ({
   trimestre: n.bimestre,
   nota: n.valor,
   comentario: n.descricao,
-  criado_em: n.criado_em
+  criado_em: n.criado_em,
+  // Campos adicionais do localStorage
+  tipo: n.tipo,
+  data_lancamento: n.data_lancamento,
+  observacoes: n.observacoes
 });
 
 export const applyNotaUpdatesOffline = (offline: any, updates: Partial<Pick<Nota,'nota'|'comentario'|'trimestre'>>) => {

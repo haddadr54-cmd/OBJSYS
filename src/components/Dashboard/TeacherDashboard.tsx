@@ -1,36 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Users, GraduationCap, BookOpen, Calendar, MessageSquare, ClipboardList, TrendingUp, LogOut, Plus, Zap } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { Users, GraduationCap, BookOpen, Calendar, MessageSquare, ClipboardList, TrendingUp, Zap } from 'lucide-react';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import { SidebarManager } from '../Layout/SidebarManager';
 import { Header } from '../Layout/Header';
 
-import { NotasPage } from '../Pages/NotasPage';
-import { AgendaPage } from '../Pages/AgendaPage';
-import { MateriaisPage } from '../Pages/MateriaisPage';
-import { RecadosPage } from '../Pages/RecadosPage';
-import { PerfilPage } from '../Pages/PerfilPage';
-import { AlunosTeacherPage } from '../Pages/AlunosTeacherPage';
-import { TurmasTeacherPage } from '../Pages/TurmasTeacherPage';
-import { PresencaPage } from '../Pages/PresencaPage';
-import { NotificacoesPage } from '../Pages/NotificacoesPage';
+// Lazy loaded pages for code splitting
+const NotasPage = lazy(() => import('../Pages/NotasPage').then(m => ({ default: m.NotasPage })));
+const RecuperacaoPage = lazy(() => import('../Pages/RecuperacaoPage'));
+const AgendaPage = lazy(() => import('../Pages/AgendaPage').then(m => ({ default: m.AgendaPage })));
+const MateriaisPage = lazy(() => import('../Pages/MateriaisPage').then(m => ({ default: m.MateriaisPage })));
+const RecadosPage = lazy(() => import('../Pages/RecadosPage').then(m => ({ default: m.RecadosPage })));
+const PerfilPage = lazy(() => import('../Pages/PerfilPage').then(m => ({ default: m.PerfilPage })));
+const AlunosTeacherPage = lazy(() => import('../Pages/AlunosTeacherPage').then(m => ({ default: m.AlunosTeacherPage })));
+const TurmasTeacherPage = lazy(() => import('../Pages/TurmasTeacherPage').then(m => ({ default: m.TurmasTeacherPage })));
+const PresencaPage = lazy(() => import('../Pages/PresencaPage').then(m => ({ default: m.PresencaPage })));
+const NotificacoesPage = lazy(() => import('../Pages/NotificacoesPage').then(m => ({ default: m.NotificacoesPage })));
+const PeriodoLetivoPage = lazy(() => import('../Pages/PeriodoLetivoPage'));
 
 interface TeacherDashboardProps {
   onNavigate?: (page: string) => void;
   currentPage?: string;
 }
 
-const pageTitles: Record<string, string> = {
-  dashboard: 'Dashboard',
-  turmas: 'Turmas',
-  alunos: 'Alunos',
-  notas: 'Lançar Notas',
-  presenca: 'Presença',
-  agenda: 'Provas/Tarefas',
-  materiais: 'Materiais',
-  recados: 'Recados',
-  perfil: 'Perfil',
-};
+// Títulos de página centralizados em utils/pageTitles para evitar duplicação e melhorar HMR
+import { pageTitles } from '../../utils/pageTitles';
 
 export function TeacherDashboard({ onNavigate, currentPage = 'dashboard' }: TeacherDashboardProps) {
   const { user, isSupabaseConnected, signOut } = useAuth();
@@ -119,15 +113,19 @@ export function TeacherDashboard({ onNavigate, currentPage = 'dashboard' }: Teac
           
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 sm:p-6">
             <div className="max-w-7xl mx-auto">
-              {currentPage === 'turmas' && <TurmasTeacherPage onPageChange={handlePageChange} />}
-              {currentPage === 'alunos' && <AlunosTeacherPage onPageChange={handlePageChange} />}
-              {currentPage === 'notas' && <NotasPage />}
-              {currentPage === 'presenca' && <PresencaPage />}
-              {currentPage === 'agenda' && <AgendaPage />}
-              {currentPage === 'materiais' && <MateriaisPage />}
-              {currentPage === 'recados' && <RecadosPage />}
-              {currentPage === 'notificacoes' && <NotificacoesPage />}
-              {currentPage === 'perfil' && <PerfilPage />}
+              <Suspense fallback={<div className="py-10 text-center text-gray-500 font-medium">Carregando página...</div>}>
+                {currentPage === 'turmas' && <TurmasTeacherPage onPageChange={handlePageChange} />}
+                {currentPage === 'alunos' && <AlunosTeacherPage onPageChange={handlePageChange} />}
+                {currentPage === 'notas' && <NotasPage />}
+                {currentPage === 'recuperacao' && <RecuperacaoPage />}
+                {currentPage === 'periodo-letivo' && <PeriodoLetivoPage />}
+                {currentPage === 'presenca' && <PresencaPage />}
+                {currentPage === 'agenda' && <AgendaPage />}
+                {currentPage === 'materiais' && <MateriaisPage />}
+                {currentPage === 'recados' && <RecadosPage />}
+                {currentPage === 'notificacoes' && <NotificacoesPage />}
+                {currentPage === 'perfil' && <PerfilPage />}
+              </Suspense>
             </div>
           </main>
         </div>

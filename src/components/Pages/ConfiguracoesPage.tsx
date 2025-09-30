@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, School, Palette, Shield, Bell, Database, Calendar, Save, Upload, Download, RotateCcw, Eye, EyeOff, Volume2, VolumeX, Check, AlertCircle, User, Mail, Phone, MapPin, Globe, Clock, Lock, Key, FileText, BarChart3, Zap, Monitor, Smartphone, Tablet, GraduationCap, Grid, Square, Circle, Camera, Paintbrush, RefreshCw } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useLogoConfig } from '../../contexts/LogoContext';
+import { Settings, School, Palette, Shield, Database, Save, Upload, RotateCcw, Check, AlertCircle, Monitor, GraduationCap, Clock, Zap } from 'lucide-react';
+// Use the unified logo context hook that matches the provider configured in App.tsx
+import { useLogoConfig } from '../../contexts/logo/useLogo';
+import { useGlobalConfig } from '../../contexts/globalConfig/useGlobalConfig';
 
 interface SystemConfig {
   // Informações da Escola
@@ -46,11 +47,12 @@ interface ConfiguracoesPageProps {
   onNavigate?: (page: string) => void;
 }
 
-export function ConfiguracoesPage({ onNavigate }: ConfiguracoesPageProps = {}) {
-  const { user } = useAuth();
-  const { logoConfig, updateLogoConfig } = useLogoConfig();
-  const [activeTab, setActiveTab] = useState<'geral' | 'aparencia' | 'sistema' | 'seguranca' | 'academico' | 'interface'>('geral');
-  const [config, setConfig] = useState<SystemConfig>({
+export function ConfiguracoesPage({ onNavigate, initialTab }: ConfiguracoesPageProps & { initialTab?: string } = {}) {
+  const { updateLogoConfig } = useLogoConfig();
+  const { configs: globalConfigs, saveConfig: saveGlobalConfig } = useGlobalConfig();
+  const [activeTab, setActiveTab] = useState<'geral' | 'aparencia' | 'sistema' | 'seguranca' | 'academico' | 'interface'>(initialTab === 'aparencia' ? 'aparencia' : 'geral');
+  // Default config extracted so we can reliably reset to defaults
+  const defaultSystemConfig: SystemConfig = {
     // Informações da Escola
     schoolName: 'Colégio Objetivo',
     schoolAddress: 'Rua das Flores, 123 - Centro',
@@ -87,7 +89,8 @@ export function ConfiguracoesPage({ onNavigate }: ConfiguracoesPageProps = {}) {
     language: 'pt-BR',
     dateFormat: 'DD/MM/YYYY',
     timeFormat: '24h'
-  });
+  };
+  const [config, setConfig] = useState<SystemConfig>(defaultSystemConfig);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -96,15 +99,33 @@ export function ConfiguracoesPage({ onNavigate }: ConfiguracoesPageProps = {}) {
     loadConfig();
   }, []);
 
+  // Quando visual_customization estiver disponível no GlobalConfig, sincronizar campos visuais (apenas se existir)
+  useEffect(() => {
+    const v = (globalConfigs as any)?.visual_customization;
+    if (v) {
+      setConfig(prev => ({
+        ...prev,
+        primaryColor: v.primaryColor ?? prev.primaryColor,
+        secondaryColor: v.secondaryColor ?? prev.secondaryColor,
+        accentColor: v.accentColor ?? prev.accentColor,
+        logoUrl: v.logoUrl ?? prev.logoUrl,
+      }));
+    }
+  }, [globalConfigs?.visual_customization]);
+
   const loadConfig = () => {
     const savedConfig = localStorage.getItem('systemConfig');
     if (savedConfig) {
       try {
         const parsedConfig = JSON.parse(savedConfig);
-        setConfig({ ...config, ...parsedConfig });
+        // Merge over defaults to avoid stale closure values and keep shape consistent
+        setConfig({ ...defaultSystemConfig, ...parsedConfig });
       } catch (error) {
         console.error('Erro ao carregar configurações:', error);
       }
+    } else {
+      // When nothing saved, ensure we are at defaults
+      setConfig(defaultSystemConfig);
     }
   };
 
@@ -137,8 +158,17 @@ export function ConfiguracoesPage({ onNavigate }: ConfiguracoesPageProps = {}) {
         return;
       }
       
-      // Salvar no localStorage
+      // Salvar no localStorage (demais configurações de sistema)
       localStorage.setItem('systemConfig', JSON.stringify(config));
+
+      // Salvar campos visuais em GlobalConfig como fonte única de verdade
+      await saveGlobalConfig('visual_customization', {
+        logoUrl: config.logoUrl,
+        systemName: config.schoolName,
+        primaryColor: config.primaryColor,
+        secondaryColor: config.secondaryColor,
+        accentColor: config.accentColor,
+      });
       
       // Atualizar configurações do logo
       updateLogoConfig({
@@ -159,7 +189,20 @@ export function ConfiguracoesPage({ onNavigate }: ConfiguracoesPageProps = {}) {
   const resetConfig = () => {
     if (confirm('Tem certeza que deseja restaurar as configurações padrão? Esta ação não pode ser desfeita.')) {
       localStorage.removeItem('systemConfig');
-      loadConfig();
+      // Reset in-memory state and also reflect on logo config
+      setConfig(defaultSystemConfig);
+      updateLogoConfig({
+        logoUrl: defaultSystemConfig.logoUrl,
+        systemName: defaultSystemConfig.schoolName
+      });
+      // Atualizar GlobalConfig visual_customization com padrões
+      saveGlobalConfig('visual_customization', {
+        logoUrl: defaultSystemConfig.logoUrl,
+        systemName: defaultSystemConfig.schoolName,
+        primaryColor: defaultSystemConfig.primaryColor,
+        secondaryColor: defaultSystemConfig.secondaryColor,
+        accentColor: defaultSystemConfig.accentColor,
+      });
     }
   };
 
@@ -194,8 +237,7 @@ export function ConfiguracoesPage({ onNavigate }: ConfiguracoesPageProps = {}) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Settings className="h-6 w-6 text-blue-600" />
+        <div className="flex items-center">
           <h1 className="text-2xl font-bold text-gray-900">Configurações do Sistema</h1>
         </div>
         <div className="flex space-x-2">

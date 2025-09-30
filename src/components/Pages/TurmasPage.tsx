@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { School, Plus, Edit, Trash2, Search, Filter, Eye, Users, BookOpen, Clock, Calendar } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { School, Plus, Edit, Trash2, Search, Filter, BookOpen, Clock, Calendar, User } from 'lucide-react';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import type { Turma, Aluno, Disciplina } from '../../lib/supabase';
 import { TurmaModal } from '../Modals/TurmaModal';
@@ -241,7 +241,7 @@ export function TurmasPage() {
               <p className="text-2xl font-bold text-green-600">{alunos.length}</p>
             </div>
             <div className="p-2 bg-green-50 rounded-full">
-              <Users className="h-6 w-6 text-green-600" />
+              <User className="h-6 w-6 text-green-600" />
             </div>
           </div>
         </div>
@@ -265,7 +265,7 @@ export function TurmasPage() {
               </p>
             </div>
             <div className="p-2 bg-yellow-50 rounded-full">
-              <Users className="h-6 w-6 text-yellow-600" />
+              <User className="h-6 w-6 text-yellow-600" />
             </div>
           </div>
         </div>
@@ -326,7 +326,7 @@ export function TurmasPage() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <Users className="h-4 w-4 text-blue-500" />
+                        <User className="h-4 w-4 text-blue-500" />
                         <span className="text-sm text-gray-700 font-bold">👥 Alunos</span>
                       </div>
                       <span className="text-sm font-black text-gray-900">
@@ -345,7 +345,7 @@ export function TurmasPage() {
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <Users className="h-4 w-4 text-gray-400" />
+                        <User className="h-4 w-4 text-gray-400" />
                         <span className="text-sm text-gray-600">Professor</span>
                       </div>
                       <span className="text-sm font-medium text-gray-900">{turmaComStats.professorNome}</span>

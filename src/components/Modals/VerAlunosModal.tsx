@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, GraduationCap, Users, Search, Eye, BookOpen, Calendar, Phone, Mail } from 'lucide-react';
-import { 
-  getAllAlunos,
+import {
   getNotasByAluno,
-  getAllUsuarios,
-  getAllTurmas
+  getAllUsuarios
 } from '../../lib/supabase';
-import type { Turma, Aluno, Nota, Usuario } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
+import type { Turma, Aluno, Nota, Usuario } from '../../lib/supabase.types';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
+import { getNotaTextColor } from '../../lib/gradeConfig';
 
 interface VerAlunosModalProps {
   isOpen: boolean;
   onClose: () => void;
+  aluno?: Aluno; // Novo: aluno selecionado opcional
 }
 
 interface AlunoDetalhado extends Aluno {
@@ -24,9 +24,8 @@ interface AlunoDetalhado extends Aluno {
   percentualPresenca: number;
 }
 
-export function VerAlunosModal({ isOpen, onClose }: VerAlunosModalProps) {
-  const { user } = useAuth();
-  const { isSupabaseConnected } = useAuth();
+export function VerAlunosModal({ isOpen, onClose, aluno }: VerAlunosModalProps) {
+  const { user, isSupabaseConnected } = useAuth();
   const dataService = useDataService(user, isSupabaseConnected);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<AlunoDetalhado[]>([]);
@@ -37,11 +36,40 @@ export function VerAlunosModal({ isOpen, onClose }: VerAlunosModalProps) {
   const [selectedAluno, setSelectedAluno] = useState<AlunoDetalhado | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Carrega dados ao abrir o modal
   useEffect(() => {
     if (isOpen && user) {
       fetchData();
     }
   }, [isOpen, user]);
+
+  // Se receber um aluno por props, abre direto o perfil desse aluno
+  useEffect(() => {
+    // Se vier aluno por props, tenta abrir o perfil assim que possível
+    if (aluno) {
+      if (alunos.length > 0) {
+        const encontrado = alunos.find(a => a.id === aluno.id);
+        if (encontrado) {
+          setSelectedAluno(encontrado);
+        } else {
+          setSelectedAluno(null);
+        }
+      } else {
+        // Se ainda não carregou alunos, cria um placeholder parcial
+        setSelectedAluno(prev => prev && prev.id === aluno.id ? prev : {
+          ...aluno,
+          turma: undefined,
+          responsavel: undefined,
+          notas: [],
+          mediaGeral: 0,
+          totalPresencas: 0,
+          percentualPresenca: 0
+        });
+      }
+    } else {
+      setSelectedAluno(null);
+    }
+  }, [aluno, alunos]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -251,11 +279,7 @@ export function VerAlunosModal({ isOpen, onClose }: VerAlunosModalProps) {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Média Geral:</span>
-                      <span className={`text-sm font-bold ${
-                        aluno.mediaGeral >= 7 ? 'text-green-600' :
-                        aluno.mediaGeral >= 5 ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>
+                      <span className={`text-sm font-bold ${getNotaTextColor(aluno.mediaGeral)}`}>
                         {aluno.mediaGeral.toFixed(1)}
                       </span>
                     </div>
@@ -368,11 +392,7 @@ export function VerAlunosModal({ isOpen, onClose }: VerAlunosModalProps) {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-blue-600">Média Geral</p>
-                          <p className={`text-2xl font-bold ${
-                            selectedAluno.mediaGeral >= 7 ? 'text-green-600' :
-                            selectedAluno.mediaGeral >= 5 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
+                          <p className={`text-2xl font-bold ${getNotaTextColor(selectedAluno.mediaGeral)}`}>
                             {selectedAluno.mediaGeral.toFixed(1)}
                           </p>
                         </div>
@@ -432,11 +452,7 @@ export function VerAlunosModal({ isOpen, onClose }: VerAlunosModalProps) {
                                   {nota.disciplina?.nome}
                                 </td>
                                 <td className="px-3 py-2">
-                                  <span className={`font-medium ${
-                                    (nota.nota || 0) >= 7 ? 'text-green-600' :
-                                    (nota.nota || 0) >= 5 ? 'text-yellow-600' :
-                                    'text-red-600'
-                                  }`}>
+                                  <span className={`font-medium ${getNotaTextColor(nota.nota || 0)}`}>
                                     {(nota.nota || 0).toFixed(1)}
                                   </span>
                                 </td>

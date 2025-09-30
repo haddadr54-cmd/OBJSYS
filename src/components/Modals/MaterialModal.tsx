@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Video, Link, Image, Upload, Save, AlertCircle, Check, BookOpen, Users } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { X, FileText, Video, Link, Upload, Save, AlertCircle, Check, BookOpen, Users } from 'lucide-react';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import type { Turma, Disciplina, Material } from '../../lib/supabase';
 
@@ -134,7 +134,7 @@ export function MaterialModal({ isOpen, onClose, material, onSave }: MaterialMod
         return;
       }
 
-      if (formData.tipo === 'imagem' && !allowedTypes.imagem.includes(file.type)) {
+  if (formData.tipo === 'imagem' && allowedTypes.imagem && !allowedTypes.imagem.includes(file.type)) {
         setErrors({ ...errors, arquivo_url: 'Apenas imagens JPG, PNG, GIF ou WebP são permitidas' });
         return;
       }

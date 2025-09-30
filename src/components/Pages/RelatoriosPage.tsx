@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Download, Filter, Calendar, Users, GraduationCap, BookOpen, TrendingUp, FileText, Printer } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { FileBarChart, Download, Calendar, Users, BookOpen, UserCheck, TrendingUp, Filter, Search, Eye, X, Printer, Mail, BarChart3, GraduationCap, FileText } from 'lucide-react';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
-import type { Aluno, Turma, Nota, Usuario, Disciplina } from '../../lib/supabase';
+import { getSituacaoAcademica, isAprovado, isRecuperacao, formatarNota, MEDIA_MINIMA_APROVACAO, MEDIA_MINIMA_RECUPERACAO } from '../../lib/gradeConfig';
+import type { Aluno, Turma, Nota, Usuario, Disciplina } from '../../lib/supabase.types';
 
 interface RelatorioData {
   alunos: Aluno[];
@@ -133,7 +134,7 @@ export function RelatoriosPage() {
         responsavel: responsavel?.nome || 'Sem responsável',
         totalNotas: notasAluno.length,
         mediaGeral: mediaGeral.toFixed(1),
-        situacao: mediaGeral >= 7 ? 'Aprovado' : mediaGeral >= 5 ? 'Recuperação' : 'Reprovado',
+        situacao: getSituacaoAcademica(mediaGeral).status,
         ultimaNota: notasAluno.length > 0 
           ? new Date(notasAluno[notasAluno.length - 1].criado_em).toLocaleDateString('pt-BR')
           : 'Nenhuma nota'
@@ -294,7 +295,7 @@ export function RelatoriosPage() {
       const mediaAluno = notasAluno.length > 0 
         ? notasAluno.reduce((acc, nota) => acc + (nota.nota || 0), 0) / notasAluno.length 
         : 0;
-      return mediaAluno >= 7;
+      return isAprovado(mediaAluno);
     }).length;
     
     const recuperacao = dados.alunos.filter(aluno => {
@@ -302,7 +303,7 @@ export function RelatoriosPage() {
       const mediaAluno = notasAluno.length > 0 
         ? notasAluno.reduce((acc, nota) => acc + (nota.nota || 0), 0) / notasAluno.length 
         : 0;
-      return mediaAluno >= 5 && mediaAluno < 7;
+      return getSituacaoAcademica(mediaAluno).status === 'Recuperação';
     }).length;
     
     const reprovados = dados.alunos.length - aprovados - recuperacao;
@@ -410,12 +411,12 @@ export function RelatoriosPage() {
           <table>
             <thead>
               <tr>
-                ${relatorioGerado.colunas.map(col => `<th>${col}</th>`).join('')}
+                ${relatorioGerado.colunas.map((col: string) => `<th>${col}</th>`).join('')}
               </tr>
             </thead>
             <tbody>
-              ${relatorioGerado.dados.map(item => 
-                `<tr>${Object.values(item).map(value => `<td>${value}</td>`).join('')}</tr>`
+              ${relatorioGerado.dados.map((item: Record<string, any>) => 
+                `<tr>${Object.values(item).map((value: any) => `<td>${String(value) }</td>`).join('')}</tr>`
               ).join('')}
             </tbody>
           </table>
@@ -436,7 +437,7 @@ export function RelatoriosPage() {
   const exportarExcel = () => {
     const csvContent = [
       relatorioGerado.colunas.join(','),
-      ...relatorioGerado.dados.map(item => 
+  ...relatorioGerado.dados.map((item: Record<string, any>) =>
         Object.values(item).map(value => `"${value}"`).join(',')
       )
     ].join('\n');
@@ -843,7 +844,7 @@ export function RelatoriosPage() {
                   {Object.entries(relatorioGerado.resumo).map(([key, value]) => (
                     <div key={key} className="text-center">
                       <p className="text-sm text-blue-600 capitalize">{key.replace(/([A-Z])/g, ' $1').toLowerCase()}</p>
-                      <p className="text-lg font-bold text-blue-900">{value}</p>
+                      <p className="text-lg font-bold text-blue-900">{String(value)}</p>
                     </div>
                   ))}
                 </div>

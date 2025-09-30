@@ -13,24 +13,80 @@ app.get('/health', (_req, res) => {
 });
 
 // Dev stubs para endpoints de WhatsApp usados no frontend
+// Mantém um estado em memória para simular conexão
+const waState = {
+  connected: false,
+  status: 'disconnected', // 'connected' | 'connecting' | 'qr_code' | 'disconnected' | 'error'
+  qrCode: undefined,
+  lastError: undefined,
+  provider: 'WhatsApp Web (Puppeteer)',
+  timestamp: new Date().toISOString(),
+};
+
 app.get('/api/whatsapp/status', (_req, res) => {
-  res.json({ status: 'disconnected' });
+  // Atualiza timestamp a cada consulta
+  waState.timestamp = new Date().toISOString();
+  res.json({ ...waState });
 });
 
 app.post('/api/whatsapp/connect', (_req, res) => {
-  res.json({ ok: true, message: 'Conexão simulada (dev stub)' });
+  // Simula conexão imediata
+  waState.connected = true;
+  waState.status = 'connected';
+  waState.qrCode = undefined;
+  waState.lastError = undefined;
+  waState.timestamp = new Date().toISOString();
+  res.json({ ...waState });
 });
 
 app.post('/api/whatsapp/disconnect', (_req, res) => {
-  res.json({ ok: true, message: 'Desconectado (dev stub)' });
+  waState.connected = false;
+  waState.status = 'disconnected';
+  waState.qrCode = undefined;
+  waState.timestamp = new Date().toISOString();
+  res.json({ ok: true });
 });
 
-app.post('/api/whatsapp/send-message', (_req, res) => {
-  res.json({ ok: true, messageId: 'stub-' + Date.now() });
+app.post('/api/whatsapp/send-message', (req, res) => {
+  const { phone, message } = req.body || {};
+  if (!waState.connected) {
+    return res.status(400).json({ success: false, error: 'WhatsApp não conectado' });
+  }
+  if (!phone || !message) {
+    return res.status(400).json({ success: false, error: 'Parâmetros inválidos' });
+  }
+  // Simula envio com sucesso
+  res.json({ success: true, number: String(phone), message: 'Enviado' });
 });
 
-app.post('/api/whatsapp/send-bulk', (_req, res) => {
-  res.json({ ok: true, sent: 0, failures: [] });
+app.post('/api/whatsapp/send-bulk', (req, res) => {
+  const { numbers, message } = req.body || {};
+  if (!waState.connected) {
+    return res.status(400).json({ success: false, error: 'WhatsApp não conectado' });
+  }
+  if (!Array.isArray(numbers) || !message) {
+    return res.status(400).json({ success: false, error: 'Parâmetros inválidos' });
+  }
+
+  const results = numbers.map((n) => {
+    const num = String(n);
+    // Regras de simulação: sucesso para números com último dígito par
+    const lastDigit = parseInt(num[num.length - 1] || '0', 10);
+    const success = !Number.isNaN(lastDigit) ? lastDigit % 2 === 0 : true;
+    return success
+      ? { success: true, number: num, message: 'Enviado' }
+      : { success: false, number: num, error: 'Falha simulada' };
+  });
+
+  const sucessos = results.filter(r => r.success).length; // mantém grafia usada no frontend
+  const falhas = results.length - sucessos;
+
+  res.json({
+    total: results.length,
+    sucessos,
+    falhas,
+    results,
+  });
 });
 
 const port = process.env.PORT || 4000;

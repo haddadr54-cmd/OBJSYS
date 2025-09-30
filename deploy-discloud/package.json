@@ -1,0 +1,20 @@
+{
+  "name": "sistema-objetivo-educacional",
+  "version": "1.0.0",
+  "description": "Sistema Educacional Objetivo - Plataforma completa para gestão escolar",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "postinstall": "echo 'Sistema Objetivo instalado com sucesso!'"
+  },
+  "keywords": ["educacao", "escola", "gestao", "objetivo", "sistema"],
+  "author": "Sistema Objetivo",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

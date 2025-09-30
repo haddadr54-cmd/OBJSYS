@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, BookOpen, Calendar, MessageSquare, TrendingUp, Users, User, Phone, Mail, GraduationCap, FileText, Clock, Star, Award, Target } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useDataService } from '../../lib/dataService';
-import type { Aluno, Nota, ProvaTarefa, Recado, Turma } from '../../lib/supabase';
+import { useState, useEffect } from 'react';
+import { X, BookOpen, Calendar, MessageSquare, TrendingUp, Users, User, Phone, Mail, GraduationCap, FileText, Clock, Star } from 'lucide-react';
+import { useAuth } from '../../contexts/auth';
+import { MEDIA_MINIMA_APROVACAO, getSituacaoAcademica, getNotaTextColor, formatarNota } from '../../lib/gradeConfig';
+import type { Aluno, Nota, ProvaTarefa, Recado, Turma } from '../../lib/supabase.types';
 
 interface StudentProfileModalProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface StudentProfileModalProps {
   allNotas: Nota[];
   allProvasTarefas: ProvaTarefa[];
   allRecados: Recado[];
-  allTurmas: Turma[];
+  _allTurmas: Turma[]; // Prefixo underscore para indicar não utilizado atualmente
   allDisciplinas: any[];
 }
 
@@ -22,11 +22,10 @@ export function StudentProfileModal({
   allNotas, 
   allProvasTarefas, 
   allRecados, 
-  allTurmas, 
+  // _allTurmas removido (não usado)
   allDisciplinas 
 }: StudentProfileModalProps) {
-  const { user, isSupabaseConnected } = useAuth();
-  const dataService = useDataService(user, isSupabaseConnected);
+  const { isSupabaseConnected } = useAuth();
   const [activeTab, setActiveTab] = useState('info');
   const [notasAluno, setNotasAluno] = useState<Nota[]>([]);
   const [provasTarefasAluno, setProvasTarefasAluno] = useState<ProvaTarefa[]>([]);
@@ -37,7 +36,7 @@ export function StudentProfileModal({
     aluno: aluno.nome,
     alunoId: aluno.id,
     turma: aluno.turma?.nome || 'Turma não definida',
-    responsavel: aluno.responsavel?.nome || 'Responsável não definido',
+  responsavel: (aluno as any).responsavel?.nome || 'Responsável não definido',
     totalNotas: allNotas.length,
     totalProvas: allProvasTarefas.length,
     totalRecados: allRecados.length,
@@ -59,11 +58,22 @@ export function StudentProfileModal({
       totalRecadosDisponiveis: allRecados.length
     });
 
+    // Verificação de compatibilidade de tipos nos IDs
+    console.log('� [StudentProfileModal] Verificando compatibilidade dos dados:', {
+      totalNotas: allNotas.length,
+      alunoId: aluno.id,
+      primeiraNotaAlunoId: allNotas[0]?.aluno_id,
+      matchExato: allNotas.filter(n => n.aluno_id === aluno.id).length
+    });
+
     setLoading(true);
     
     try {
       // Filtrar notas do aluno
-      const notasFiltradas = allNotas.filter(nota => nota.aluno_id === aluno.id);
+      const notasFiltradas = allNotas.filter(nota => {
+        console.log('🔍 Comparando:', { nota_aluno_id: nota.aluno_id, aluno_id: aluno.id, match: nota.aluno_id === aluno.id });
+        return nota.aluno_id === aluno.id;
+      });
       console.log('📝 Notas filtradas:', notasFiltradas.length, notasFiltradas);
       setNotasAluno(notasFiltradas);
 
@@ -167,7 +177,7 @@ export function StudentProfileModal({
                   Turma: {aluno.turma?.nome || 'Não definida'}
                 </p>
                 <p className="text-blue-100">
-                  Responsável: {aluno.responsavel?.nome || 'Não definido'}
+                  Responsável: {(aluno as any).responsavel?.nome || 'Não definido'}
                 </p>
               </div>
             </div>
@@ -318,9 +328,9 @@ export function StudentProfileModal({
                           </div>
                           <div className="text-center">
                             <p className="text-3xl font-black text-green-600">
-                              {notasAluno.filter(n => (n.nota || 0) >= 7).length}
+                              {notasAluno.filter(n => (n.nota || 0) >= MEDIA_MINIMA_APROVACAO).length}
                             </p>
-                            <p className="text-sm text-gray-600">Notas ≥ 7.0</p>
+                            <p className="text-sm text-gray-600">Notas ≥ {formatarNota(MEDIA_MINIMA_APROVACAO)}</p>
                           </div>
                         </div>
                       </div>
@@ -359,16 +369,13 @@ export function StudentProfileModal({
                                         {nota.tipo || 'Avaliação'}
                                       </span>
                                       <span 
-                                        className={`text-lg font-bold ${
-                                          (nota.nota || 0) >= 7 ? 'text-green-600' : 
-                                          (nota.nota || 0) >= 5 ? 'text-yellow-600' : 'text-red-600'
-                                        }`}
+                                        className={`text-lg font-bold ${getNotaTextColor(nota.nota || 0)}`}
                                       >
                                         {nota.nota?.toFixed(1) || '0.0'}
                                       </span>
                                     </div>
                                     <p className="text-xs text-gray-500">
-                                      {new Date(nota.data_lancamento).toLocaleDateString('pt-BR')}
+                                      {nota.data_lancamento ? new Date(nota.data_lancamento).toLocaleDateString('pt-BR') : '—'}
                                     </p>
                                     {nota.observacoes && (
                                       <p className="text-xs text-gray-600 mt-2 italic">
@@ -579,7 +586,7 @@ export function StudentProfileModal({
                                   <div className="flex flex-wrap gap-2">
                                     {recado.anexos.map((anexo, index) => (
                                       <span key={index} className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
-                                        {anexo}
+                                        <span>{anexo.nome || anexo.id || 'Anexo'}</span>
                                       </span>
                                     ))}
                                   </div>

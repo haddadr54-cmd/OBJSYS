@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from './auth';
 import { useDataService } from '../lib/dataService';
 import type { Recado, ProvaTarefa, Material } from '../lib/supabase';
 import { registrarVisualizacao } from '../lib/supabase';

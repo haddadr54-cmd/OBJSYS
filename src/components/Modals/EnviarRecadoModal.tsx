@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, MessageSquare, Users, User, Send, AlertCircle, Check } from 'lucide-react';
 import type { Turma, Aluno } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 
 interface EnviarRecadoModalProps {

@@ -29,8 +29,8 @@ import {
   Bookmark,
   Palette
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/auth';
+import { useNotifications } from '../../contexts/notification';
 
 interface SidebarProps {
   currentPage: string;
@@ -451,7 +451,7 @@ export function Sidebar({ currentPage, onPageChange, isOpen, onToggle, config, u
     });
   };
 
-  const renderMenuItem = (item: MenuItem, level: number = 0) => {
+  const renderMenuItem = (item: MenuItem, level: number = 0): React.ReactNode => {
     const isActive = currentPage === item.id;
     const isExpanded = expandedSections.includes(item.id);
     const isFavorite = favorites.includes(item.id);
@@ -459,45 +459,46 @@ export function Sidebar({ currentPage, onPageChange, isOpen, onToggle, config, u
     const Icon = item.icon;
 
     return (
-      <li key={item.id} className={level > 0 ? 'ml-4' : ''}>
-        <div className="relative group">
-          <button
-            onClick={() => {
-              if (hasChildren) {
-                toggleSection(item.id);
-              } else {
-               console.log('🔍 [Sidebar] Item clicado:', {
-                 itemId: item.id,
-                 itemLabel: item.label,
-                 currentPage,
-                 timestamp: new Date().toISOString()
-               });
-                onPageChange(item.id);
-                if (window.innerWidth < 1024) onToggle();
-              }
-            }}
-            className={`w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 text-left transition-all duration-300 rounded-lg sm:rounded-xl group relative mobile-nav-item ${
-              isActive
-                ? 'bg-white text-blue-700 shadow-xl font-bold border-l-4 border-blue-600'
-                : hasChildren
-                  ? 'text-white hover:bg-white/10 hover:text-white hover:shadow-lg font-medium'
-                  : 'text-white hover:bg-white/10 hover:text-white hover:shadow-lg font-medium'
-            }`}
-          >
-            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-              <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl transition-all duration-300 flex-shrink-0 shadow-lg ${
-                isActive 
-                  ? 'bg-blue-600 shadow-xl' 
-                  : 'bg-white/20 group-hover:bg-white/30 group-hover:shadow-xl'
-              }`}>
-                <Icon className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
+      <>
+        <li key={item.id} className={level > 0 ? 'ml-4' : ''}>
+          <div className="relative group">
+            <button
+              onClick={() => {
+                if (hasChildren) {
+                  toggleSection(item.id);
+                } else {
+                 console.log('🔍 [Sidebar] Item clicado:', {
+                   itemId: item.id,
+                   itemLabel: item.label,
+                   currentPage,
+                   timestamp: new Date().toISOString()
+                 });
+                  onPageChange(item.id);
+                  if (window.innerWidth < 1024) onToggle();
+                }
+              }}
+              className={`w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 text-left transition-all duration-300 rounded-lg sm:rounded-xl group relative mobile-nav-item ${
+                isActive
+                  ? 'bg-white text-blue-700 shadow-xl font-bold border-l-4 border-blue-600'
+                  : hasChildren
+                    ? 'text-white hover:bg-white/10 hover:text-white hover:shadow-lg font-medium'
+                    : 'text-white hover:bg-white/10 hover:text-white hover:shadow-lg font-medium'
+              }`}
+            >
+              <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl transition-all duration-300 flex-shrink-0 shadow-lg ${
                   isActive 
-                    ? 'text-white' 
-                    : 'text-white group-hover:text-white'
-                }`} />
-              </div>
-              
-              <div className="flex-1 min-w-0">
+                    ? 'bg-blue-600 shadow-xl' 
+                    : 'bg-white/20 group-hover:bg-white/30 group-hover:shadow-xl'
+                }`}>
+                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300 ${
+                    isActive 
+                      ? 'text-white' 
+                      : 'text-white group-hover:text-white'
+                  }`} />
+                </div>
+                
+                <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
                   <span className={`text-xs sm:text-sm font-semibold transition-all duration-300 truncate ${
                     isActive 
@@ -586,16 +587,13 @@ export function Sidebar({ currentPage, onPageChange, isOpen, onToggle, config, u
               )}
             </div>
           </button>
-
-          {/* Submenu */}
-          {hasChildren && isExpanded && (
-            <div className="mt-1 sm:mt-2 ml-3 sm:ml-4 space-y-1 border-l-2 border-white/20 pl-3 sm:pl-4">
-              {item.children!.map(child => renderMenuItem(child, level + 1))}
-            </div>
-          )}
         </div>
       </li>
-    );
+        
+      {/* Submenu items - rendered as separate li elements to avoid nesting */}
+      {hasChildren && isExpanded && item.children!.map(child => renderMenuItem(child, level + 1))}
+    </>
+  );
   };
 
   const filteredItems = filterItems(items);

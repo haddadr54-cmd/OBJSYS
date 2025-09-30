@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileText, Plus, Edit, Trash2, Search, Filter, Video, Link, CheckCircle, AlertCircle, Users } from 'lucide-react';
 import { ItemDetailModal } from '../Modals/ItemDetailModal';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import { getEstatisticasVisualizacao, getVisualizacoesByItem, registrarVisualizacao } from '../../lib/supabase';
 import type { Material, Turma, Disciplina } from '../../lib/supabase';

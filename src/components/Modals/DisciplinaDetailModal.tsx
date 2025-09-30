@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, BookOpen, Users, User, Calendar, Save, Edit, Plus, Trash2, AlertCircle, Check } from 'lucide-react';
-import { getAllTurmas, getAllUsuarios, updateDisciplina, getAllDisciplinas } from '../../lib/supabase';
-import type { Disciplina, Turma, Usuario } from '../../lib/supabase';
+import React, { useState, useEffect, useMemo } from 'react';
+import { throttle } from '../../utils/performanceOptimizations';
+import { X, BookOpen, Users, User, Calendar, Save, Edit, Check } from 'lucide-react';
+import { getAllTurmas, getAllUsuarios, updateDisciplina } from '../../lib/supabase';
+import type { Disciplina, Turma, Usuario } from '../../lib/supabase.types';
 
 interface DisciplinaDetailModalProps {
   isOpen: boolean;
@@ -16,7 +17,6 @@ export function DisciplinaDetailModal({ isOpen, onClose, disciplina, onSave }: D
   const [success, setSuccess] = useState(false);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [professores, setProfessores] = useState<Usuario[]>([]);
-  const [turmasAssociadas, setTurmasAssociadas] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     nome: '',
     codigo: '',
@@ -26,11 +26,28 @@ export function DisciplinaDetailModal({ isOpen, onClose, disciplina, onSave }: D
     ativa: true
   });
 
+  // Cache das chamadas de API para evitar refetching desnecessário
+  const fetchData = useMemo(() => throttle(async () => {
+    try {
+      const [turmasData, usuariosData] = await Promise.all([
+        getAllTurmas(),
+        getAllUsuarios()
+      ]);
+      
+      setTurmas(turmasData);
+      // Filtragem memoizada para reduzir reprocessamento
+      const filteredProfessores = usuariosData.filter(u => u.tipo_usuario === 'professor');
+      setProfessores(filteredProfessores);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    }
+  }, 500), []); // Throttle de 500ms para evitar múltiplas chamadas
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && turmas.length === 0) { // Só busca se ainda não tem dados
       fetchData();
     }
-  }, [isOpen]);
+  }, [isOpen, fetchData, turmas.length]);
 
   useEffect(() => {
     if (disciplina) {
@@ -43,26 +60,8 @@ export function DisciplinaDetailModal({ isOpen, onClose, disciplina, onSave }: D
         ativa: (disciplina as any).ativa ?? true
       });
       
-      // Se a disciplina tem turma_id, adicionar à lista de turmas associadas
-      if (disciplina.turma_id) {
-        setTurmasAssociadas([disciplina.turma_id]);
-      }
     }
   }, [disciplina]);
-
-  const fetchData = async () => {
-    try {
-      const [turmasData, usuariosData] = await Promise.all([
-        getAllTurmas(),
-        getAllUsuarios()
-      ]);
-      
-      setTurmas(turmasData);
-      setProfessores(usuariosData.filter(u => u.tipo_usuario === 'professor'));
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    }
-  };
 
   const handleSave = async () => {
     if (!disciplina) return;
@@ -74,7 +73,7 @@ export function DisciplinaDetailModal({ isOpen, onClose, disciplina, onSave }: D
         codigo: formData.codigo,
         descricao: formData.descricao,
         cor: formData.cor,
-        professor_id: formData.professor_id || null,
+  professor_id: formData.professor_id || undefined,
         ativa: formData.ativa
       });
 
@@ -89,16 +88,6 @@ export function DisciplinaDetailModal({ isOpen, onClose, disciplina, onSave }: D
     } finally {
       setLoading(false);
     }
-  };
-
-  const addTurmaAssociada = (turmaId: string) => {
-    if (!turmasAssociadas.includes(turmaId)) {
-      setTurmasAssociadas([...turmasAssociadas, turmaId]);
-    }
-  };
-
-  const removeTurmaAssociada = (turmaId: string) => {
-    setTurmasAssociadas(turmasAssociadas.filter(id => id !== turmaId));
   };
 
   const getProfessorNome = (professorId: string) => {

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { X, BookOpen, Users, Calendar, Save, AlertCircle, Check, Zap, Calculator, TrendingUp } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { X, BookOpen, Users, Calendar, Save, AlertCircle, Check, Zap, Calculator } from 'lucide-react';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
-import type { Turma, Disciplina, Aluno } from '../../lib/supabase';
+import { getNotaBorderBgClasses, getNotaBgColor, getNotaTextColor, MEDIA_MINIMA_APROVACAO, MEDIA_MINIMA_RECUPERACAO, formatarNota } from '../../lib/gradeConfig';
+import type { Turma, Disciplina, Aluno } from '../../lib/supabase.types';
 
 interface LancarNotasModalProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export function LancarNotasModal({ isOpen, onClose, onSave }: LancarNotasModalPr
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [quickFillMode, setQuickFillMode] = useState(false);
+  // quickFillMode removido (não utilizado)
   const [quickFillValue, setQuickFillValue] = useState('');
 
   useEffect(() => {
@@ -103,7 +104,6 @@ export function LancarNotasModal({ isOpen, onClose, onSave }: LancarNotasModalPr
   const preencherTodasNotas = () => {
     if (quickFillValue && !isNaN(parseFloat(quickFillValue))) {
       setNotas(prev => prev.map(n => ({ ...n, nota: quickFillValue })));
-      setQuickFillMode(false);
       setQuickFillValue('');
     }
   };
@@ -169,7 +169,8 @@ export function LancarNotasModal({ isOpen, onClose, onSave }: LancarNotasModalPr
           disciplina_id: disciplinaSelected,
           trimestre: parseInt(trimestre),
           nota: parseFloat(notaData.nota),
-          comentario: notaData.comentario || null
+          // Se comentário vazio, omitir campo para manter tipo (string | undefined)
+          comentario: notaData.comentario ? notaData.comentario : undefined
         });
       }
 
@@ -444,18 +445,12 @@ export function LancarNotasModal({ isOpen, onClose, onSave }: LancarNotasModalPr
                     <div 
                       key={aluno.id} 
                       className={`flex items-center space-x-4 p-4 border-2 rounded-lg transition-all ${
-                        nota >= 7 ? 'border-green-200 bg-green-50' :
-                        nota >= 5 ? 'border-yellow-200 bg-yellow-50' :
-                        nota > 0 ? 'border-red-200 bg-red-50' :
-                        'border-gray-200 hover:bg-gray-50'
+                        nota > 0 ? getNotaBorderBgClasses(nota) : 'border-gray-200 hover:bg-gray-50'
                       }`}
                     >
                       <div className="flex items-center space-x-3 flex-1">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
-                          nota >= 7 ? 'bg-green-500' :
-                          nota >= 5 ? 'bg-yellow-500' :
-                          nota > 0 ? 'bg-red-500' :
-                          'bg-blue-500'
+                          nota > 0 ? getNotaBgColor(nota) : 'bg-blue-500'
                         }`}>
                           {aluno.nome.charAt(0).toUpperCase()}
                         </div>
@@ -463,12 +458,8 @@ export function LancarNotasModal({ isOpen, onClose, onSave }: LancarNotasModalPr
                           <h5 className="font-semibold text-gray-900 text-lg">{aluno.nome}</h5>
                           <p className="text-sm text-gray-500">
                             {nota > 0 ? (
-                              <span className={`font-medium ${
-                                nota >= 7 ? 'text-green-600' :
-                                nota >= 5 ? 'text-yellow-600' :
-                                'text-red-600'
-                              }`}>
-                                Nota atual: {nota.toFixed(1)}
+                              <span className={`font-medium ${getNotaTextColor(nota)}`}>
+                                Nota atual: {formatarNota(nota)}
                               </span>
                             ) : (
                               'Aguardando nota'
@@ -521,21 +512,21 @@ export function LancarNotasModal({ isOpen, onClose, onSave }: LancarNotasModalPr
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-green-600">
-                      {notas.filter(n => parseFloat(n.nota) >= 7).length}
+                      {notas.filter(n => parseFloat(n.nota) >= MEDIA_MINIMA_APROVACAO).length}
                     </div>
-                    <div className="text-sm text-green-800">Aprovados (≥7)</div>
+                    <div className="text-sm text-green-800">Aprovados (≥{formatarNota(MEDIA_MINIMA_APROVACAO)})</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-yellow-600">
-                      {notas.filter(n => parseFloat(n.nota) >= 5 && parseFloat(n.nota) < 7).length}
+                      {notas.filter(n => parseFloat(n.nota) >= MEDIA_MINIMA_RECUPERACAO && parseFloat(n.nota) < MEDIA_MINIMA_APROVACAO).length}
                     </div>
-                    <div className="text-sm text-yellow-800">Recuperação (5-6.9)</div>
+                    <div className="text-sm text-yellow-800">Recuperação ({formatarNota(MEDIA_MINIMA_RECUPERACAO)}-{formatarNota(MEDIA_MINIMA_APROVACAO - 0.1)})</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-red-600">
-                      {notas.filter(n => parseFloat(n.nota) > 0 && parseFloat(n.nota) < 5).length}
+                      {notas.filter(n => parseFloat(n.nota) > 0 && parseFloat(n.nota) < MEDIA_MINIMA_RECUPERACAO).length}
                     </div>
-                    <div className="text-sm text-red-800">Reprovados {"(<5)"}</div>
+                    <div className="text-sm text-red-800">Reprovados (&lt;{formatarNota(MEDIA_MINIMA_RECUPERACAO)})</div>
                   </div>
                 </div>
               </div>

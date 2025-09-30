@@ -1,34 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Shield, 
-  Users, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Save, 
-  X, 
-  Check, 
-  AlertCircle, 
-  Copy, 
-  RotateCcw,
+import { useState, useEffect } from 'react';
+import {
+  Shield,
+  Users,
+  Plus,
+  Edit,
+  Trash2,
   Eye,
   Settings,
-  User,
+  Check,
+  Filter,
+  Search,
   GraduationCap,
-  UserCheck,
-  Crown,
-  Briefcase,
-  ClipboardList,
-  FileText,
   BookOpen,
-  Calendar,
+  FileText,
+  ClipboardList,
   MessageSquare,
+  MessageCircle,
   BarChart3,
   Database,
-  Search,
-  Filter
+  X
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 
 interface Permission {
@@ -192,6 +184,19 @@ export function PermissoesPage() {
   const [success, setSuccess] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   
+  // Helper: construir link de WhatsApp a partir de um telefone brasileiro
+  const buildWhatsappLink = (phone?: string, message?: string) => {
+    if (!phone) return '';
+    try {
+      const digits = String(phone).replace(/\D/g, '');
+      const withCC = digits.startsWith('55') ? digits : `55${digits}`;
+      const text = message ? `?text=${encodeURIComponent(message)}` : '';
+      return `https://wa.me/${withCC}${text}`;
+    } catch {
+      return '';
+    }
+  };
+  
   // Modal states
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
@@ -275,9 +280,6 @@ export function PermissoesPage() {
     localStorage.setItem('userCategories', JSON.stringify(customCategories));
   };
 
-  const saveUserOverrides = () => {
-    localStorage.setItem('userPermissionOverrides', JSON.stringify(userOverrides));
-  };
 
   const updateUserCounts = (usuariosData: any[]) => {
     setCategories(prev => prev.map(category => ({
@@ -704,6 +706,18 @@ export function PermissoesPage() {
                         </div>
                         
                         <div className="flex items-center space-x-2">
+                          {usuario.telefone && (
+                            <a
+                              href={buildWhatsappLink(usuario.telefone, `Olá ${usuario.nome}`)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Abrir WhatsApp"
+                              className="flex items-center space-x-2 px-3 py-2 border border-green-200 text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                            >
+                              <MessageCircle className="h-4 w-4" />
+                              <span className="hidden sm:inline">WhatsApp</span>
+                            </a>
+                          )}
                           {category && (
                             <div className="text-right mr-4">
                               <div className="text-sm font-medium text-gray-900">

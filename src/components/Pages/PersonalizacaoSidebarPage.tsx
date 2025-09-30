@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Menu, 
   Save, 
@@ -19,18 +19,11 @@ import {
   Circle,
   Layers,
   Zap,
-  Star,
-  Search,
   User,
-  Shield,
   Sliders,
-  Paintbrush,
-  MousePointer,
-  Clock,
-  Maximize,
   Minimize
 } from 'lucide-react';
-import { useGlobalConfig } from '../../utils/configManager.tsx';
+import { useGlobalConfig } from '../../contexts/globalConfig/useGlobalConfig';
 
 interface SidebarCustomization {
   // Layout e Estilo
@@ -111,7 +104,7 @@ const defaultConfig: SidebarCustomization = {
 };
 
 export function PersonalizacaoSidebarPage() {
-  const { configs, saveConfig: saveGlobalConfig, loading: globalLoading } = useGlobalConfig();
+  const { configs, saveConfig: saveGlobalConfig } = useGlobalConfig();
   const [config, setConfig] = useState<SidebarCustomization>(defaultConfig);
   const [activeTab, setActiveTab] = useState<'layout' | 'cores' | 'funcionalidades' | 'efeitos' | 'avancado'>('layout');
   const [previewUserType, setPreviewUserType] = useState<'admin' | 'professor' | 'pai'>('admin');
@@ -145,24 +138,7 @@ export function PersonalizacaoSidebarPage() {
     sendConfigToPreview();
   }, [config, previewUserType]);
 
-  const loadConfig = () => {
-    const savedConfig = localStorage.getItem('sidebarCustomization');
-    const savedLayout = localStorage.getItem('sidebarLayout');
-    
-    if (savedConfig) {
-      try {
-        const parsedConfig = JSON.parse(savedConfig);
-        setConfig({ ...defaultConfig, ...parsedConfig });
-      } catch (error) {
-        console.error('Erro ao carregar configurações:', error);
-        setConfig(defaultConfig);
-      }
-    }
-    
-    if (savedLayout) {
-      setConfig(prev => ({ ...prev, layout: savedLayout as any }));
-    }
-  };
+  // (legacy) loadConfig removido - configuração já é carregada do contexto e localStorage em useGlobalConfig
 
   const sendConfigToPreview = () => {
     // Salvar configurações no localStorage

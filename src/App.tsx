@@ -1,58 +1,61 @@
-import { useState, useEffect } from 'react';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { LogoProvider } from './contexts/LogoContext';
-import { GlobalConfigProvider } from './utils/configManager.tsx';
-import { NotificationProvider } from './contexts/NotificationContext';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { AuthProvider } from './contexts/auth';
+import { useAuth } from './contexts/auth';
+import { LogoProvider } from './contexts/logo';
+import { GlobalConfigProvider } from './contexts/globalConfig';
+import { NotificationProvider } from './contexts/notification';
 import { LoginForm } from './components/Auth/LoginForm';
 import { SidebarManager } from './components/Layout/SidebarManager';
-import { ParentDashboard } from './components/Dashboard/ParentDashboard';
-import { AdminDashboard } from './components/Dashboard/AdminDashboard';
-import { TeacherDashboard } from './components/Dashboard/TeacherDashboard';
+// Dashboards lazy loaded for route-level code splitting
+const ParentDashboard = lazy(() => import('./components/Dashboard/ParentDashboard').then(m => ({ default: m.ParentDashboard })));
+const AdminDashboard = lazy(() => import('./components/Dashboard/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const TeacherDashboard = lazy(() => import('./components/Dashboard/TeacherDashboard').then(m => ({ default: m.TeacherDashboard })));
 import { isSupabaseConfigured } from './lib/supabase';
 
-export const pageTitles: Record<string, string> = {
-  'dashboard': 'Dashboard',
-  'notas': 'Notas & Boletim',
-  'agenda': 'Agenda',
-  'materiais': 'Materiais',
-  'recados': 'Recados',
-  'notificacoes': 'Notificações',
-  'perfil': 'Perfil do Aluno',
-  'usuarios': 'Gerenciar Usuários',
-  'alunos': 'Gerenciar Alunos',
-  'turmas': 'Gerenciar Turmas',
-  'disciplinas': 'Gerenciar Disciplinas',
-  'relatorios': 'Relatórios',
-  'alunos-teacher': 'Meus Alunos',
-  'turmas-teacher': 'Minhas Turmas',
-  'presenca': 'Controle de Presença',
-  'provas-tarefas': 'Provas e Tarefas',
-  'lancar-notas': 'Lançar Notas',
-  'permissoes': 'Gestão de Permissões',
-  'configuracoes': 'Configurações do Sistema',
-  'auditoria': 'Auditoria e Logs',
-  'editar-informacoes': 'Editar Informações da Escola',
-  'personalizacao-visual': 'Personalização Visual',
-  'personalizacao-sidebar': 'Personalizar Menu Lateral',
-  'personalizacao-login': 'Personalizar Tela de Login',
-  'dados-importexport': 'Dados - Import/Export',
-  'manutencao': 'Manutenção do Sistema',
-  'configuracao-ajuda': 'Configuração de Ajuda',
-  'whatsapp': 'WhatsApp Business'
-};
 
 function AppContent() {
   const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
   
-  // Log para monitorar mudanças de página
+  // Marca conteúdo como pronto para prevenir flash
   useEffect(() => {
-    console.log('🔍 [App] currentPage mudou para:', {
-      currentPage,
-      userType: user?.tipo_usuario,
-      timestamp: new Date().toISOString()
+    // Import dinâmico para evitar problemas de bundling
+    import('./utils/antiFlash').then(({ antiFlash }) => {
+      antiFlash.markContentReady();
     });
-  }, [currentPage, user?.tipo_usuario]);
+  }, []);
+  
+  // Prefetch otimizado: carrega dashboards baseado no tipo de usuário
+  useEffect(() => {
+    // Prefetch dashboards para navegação rápida
+    if (!user) return;
+    const preloadDashboards = async () => {
+      switch (user.tipo_usuario) {
+        case 'admin':
+          await import('./components/Dashboard/AdminDashboard');
+          setTimeout(() => {
+            import('./components/Dashboard/TeacherDashboard');
+            import('./components/Dashboard/ParentDashboard');
+          }, 2000);
+          break;
+        case 'professor':
+          await import('./components/Dashboard/TeacherDashboard');
+          setTimeout(() => {
+            import('./components/Dashboard/AdminDashboard');
+            import('./components/Dashboard/ParentDashboard');
+          }, 2000);
+          break;
+        case 'pai':
+          await import('./components/Dashboard/ParentDashboard');
+          setTimeout(() => {
+            import('./components/Dashboard/AdminDashboard');
+            import('./components/Dashboard/TeacherDashboard');
+          }, 2000);
+          break;
+      }
+    };
+    window.requestIdleCallback(() => preloadDashboards(), { timeout: 3000 });
+  }, [user?.tipo_usuario]);
 
   // Verificar se está no modo preview da tela de login
   const isLoginPreview = window.location.pathname === '/login-preview' || 
@@ -140,41 +143,47 @@ function AppContent() {
     timestamp: new Date().toISOString()
   });
   
-  switch (user.tipo_usuario) {
-    case 'pai':
-      return <ParentDashboard 
-        onNavigate={(page) => {
-          console.log('🔍 [App] setCurrentPage chamado pelo ParentDashboard:', page);
-          setCurrentPage(page);
-        }} 
-        currentPage={currentPage} 
-      />;
-    case 'admin':
-      return <AdminDashboard 
-        onNavigate={(page) => {
-          console.log('🔍 [App] setCurrentPage chamado pelo AdminDashboard:', page);
-          setCurrentPage(page);
-        }} 
-        currentPage={currentPage} 
-      />;
-    case 'professor':
-      return <TeacherDashboard 
-        onNavigate={(page) => {
-          console.log('🔍 [App] setCurrentPage chamado pelo TeacherDashboard:', page);
-          setCurrentPage(page);
-        }} 
-        currentPage={currentPage} 
-      />;
-    default:
-      console.log('Tipo de usuário desconhecido, usando ParentDashboard');
-      return <ParentDashboard 
-        onNavigate={(page) => {
-          console.log('🔍 [App] setCurrentPage chamado pelo ParentDashboard (default):', page);
-          setCurrentPage(page);
-        }} 
-        currentPage={currentPage} 
-      />;
-  }
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100"><div className="text-center"><div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mx-auto mb-6"></div><p className="text-xl font-medium text-gray-700">Carregando painel...</p><p className="text-sm text-gray-500 mt-2">Preparando módulos</p></div></div>}>
+      {(() => {
+        switch (user.tipo_usuario) {
+          case 'pai':
+            return <ParentDashboard 
+              onNavigate={(page: string) => {
+                setCurrentPage(page);
+              }} 
+              currentPage={currentPage} 
+            />;
+          case 'admin':
+            return <AdminDashboard 
+              onNavigate={(page: string) => {
+                setCurrentPage(page);
+              }} 
+              currentPage={currentPage} 
+            />;
+          case 'professor':
+            return <TeacherDashboard 
+              onNavigate={(page: string) => {
+                setCurrentPage(page);
+              }} 
+              currentPage={currentPage} 
+            />;
+          default:
+            console.error('[ERRO] Tipo de usuário desconhecido ou não definido:', user);
+            return (
+              <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-yellow-100">
+                <div className="text-center">
+                  <div className="animate-bounce rounded-full h-16 w-16 border-4 border-red-600 border-t-transparent mx-auto mb-6"></div>
+                  <p className="text-2xl font-bold text-red-700">Erro: Tipo de usuário não reconhecido</p>
+                  <p className="text-lg text-gray-700 mt-2">Entre em contato com o suporte ou revise o cadastro do usuário.</p>
+                  <pre className="mt-4 p-4 bg-white rounded-lg shadow text-left text-xs text-gray-700 max-w-xl mx-auto overflow-x-auto">{JSON.stringify(user, null, 2)}</pre>
+                </div>
+              </div>
+            );
+        }
+      })()}
+    </Suspense>
+  );
 }
 
 function App() {

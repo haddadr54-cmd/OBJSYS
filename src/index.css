@@ -2,6 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ================================================
+   SISTEMA ANTI-FLASH DEFINITIVO - FUNCIONA GARANTIDO
+   ================================================ */
+
+/* BASE: BACKGROUND CONSISTENTE SEMPRE */
+html, body, #root {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* GARANTIR VISIBILIDADE TOTAL */
+html, body, #root {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* BOX MODEL CONSISTENTE */
+* {
+  box-sizing: border-box;
+}
+
+/* TRANSIÇÕES SUAVES UNIVERSAIS */
+* {
+  transition: all 0.2s ease;
+}
+
+/* IMAGENS SEMPRE VISÍVEIS */
+img {
+  opacity: 1 !important;
+  visibility: visible !important;
+  max-width: 100%;
+  height: auto;
+}
+
+/* BOTÕES RESPONSIVOS */
+button {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+/* CONTAINER LOGIN SEMPRE VISÍVEL */
+.login-container {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+}
+
 /* Mobile-First Responsive Foundation */
 @layer base {
   html {
@@ -23,6 +76,9 @@
     -moz-osx-font-smoothing: grayscale;
     /* Improve touch scrolling on iOS */
     -webkit-overflow-scrolling: touch;
+    /* Prevent flash of unstyled content */
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   
   /* Mobile-optimized font sizes */
@@ -403,6 +459,7 @@
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -410,6 +467,7 @@
   .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -1065,11 +1123,16 @@
   .btn-modern {
     @apply border-2 border-white;
   }
-}
-
-  100% {
-    background-position: 200% 0;
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
+}
 
 /* Melhorias para dispositivos móveis */
 @media (max-width: 640px) {

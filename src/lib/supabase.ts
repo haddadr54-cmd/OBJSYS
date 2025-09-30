@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // ============================================================================
 // Configuração do Supabase (somente via variáveis de ambiente)
@@ -24,6 +24,12 @@ export const supabase: any = isSupabaseConfigured
       }
     })
   : (console.warn('⚠️ Supabase não configurado (VITE_SUPABASE_URL/ANON_KEY ausentes). Rodando em modo offline.'), null);
+
+// Compat: função utilitária para código que espera obter o cliente sob demanda.
+// Nesta versão, como já criamos o cliente acima quando configurado, apenas o retornamos.
+export const getSupabaseClient = async (): Promise<SupabaseClient | null> => {
+  return supabase as SupabaseClient | null;
+};
 
 // IMPORTANTE: Não exponha a service role key no código do cliente.
 // Se precisar de operações administrativas use um backend (ex: Express server) e

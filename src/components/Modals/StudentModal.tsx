@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, GraduationCap, Calendar, Users, Phone, Mail, MapPin, AlertCircle, Check, Upload, User } from 'lucide-react';
-import { Aluno, Turma, Usuario, getAllTurmas, getAllUsuarios, createAluno, updateAluno, createUsuario } from '../../lib/supabase';
+import type { Aluno, Turma, Usuario } from '../../lib/supabase.types';
+import { getAllTurmas, getAllUsuarios, createAluno, updateAluno, createUsuario } from '../../lib/supabase';
 
 interface StudentModalProps {
   isOpen: boolean;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, MessageSquare, Users, User, Send, AlertCircle, Check, Globe } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import type { Turma, Aluno, Recado } from '../../lib/supabase';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Plus, Filter, Eye, Edit, Trash2, BookOpen, Users, CheckCircle, AlertCircle, Grid, School } from 'lucide-react';
+import { Calendar, Clock, Plus, Filter, Edit, Trash2, CheckCircle, AlertCircle, Grid, School } from 'lucide-react';
 import { ItemDetailModal } from '../Modals/ItemDetailModal';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import { getEstatisticasVisualizacao, getVisualizacoesByItem, registrarVisualizacao, getHorariosByTurma } from '../../lib/supabase';
 import type { ProvaTarefa, Turma, Disciplina } from '../../lib/supabase';
@@ -118,9 +118,9 @@ export function AgendaPage() {
     return ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   };
 
-  const getHorariosPorDia = (dia: number) => {
-    return horarios.filter(h => h.dia_semana === dia).sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
-  };
+  // const getHorariosPorDia = (dia: number) => {
+  //   return horarios.filter(h => h.dia_semana === dia).sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+  // };
 
   const renderCronogramaView = () => {
     if (horarios.length === 0) {
@@ -379,7 +379,7 @@ export function AgendaPage() {
     if (!showVisualizacoes[provaId]) {
       try {
         const detalhes = await getVisualizacoesByItem('prova_tarefa', provaId);
-        setVisualizacoes(prev => ({
+  setVisualizacoes((prev: any) => ({
           ...prev,
           [provaId]: {
             ...prev[provaId],

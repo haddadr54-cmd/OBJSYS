@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useRealtimeNotas } from '../../hooks/useRealtimeNotas';
 import { useRealtimeRecados } from '../../hooks/useRealtimeRecados';
 import { BookOpen, Filter, Download, Eye, Calendar, MessageSquare, TrendingUp, X, Users, Plus, Edit, Trash2, Check, XCircle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import { localDB } from '../../lib/localDatabase';
-import type { Nota, Aluno, Disciplina, Recado, ProvaTarefa } from '../../lib/supabase';
+import { getMediaTextColorClasses, getMediaGradientClasses, getNotaTextColor, formatarNota, getSituacaoAcademica } from '../../lib/gradeConfig';
+import type { Nota, Aluno, Disciplina, Recado, ProvaTarefa } from '../../lib/supabase.types';
 import { ItemDetailModal } from '../Modals/ItemDetailModal';
 import { LancarNotasModal } from '../Modals/LancarNotasModal';
 
@@ -474,24 +475,16 @@ export function NotasPage() {
                         </div>
                         <div className="flex items-center space-x-1">
                           <TrendingUp className="h-4 w-4 text-purple-500" />
-                          <span className={`text-xs sm:text-sm font-black ${
-                            calcularMediaAluno(aluno.id) >= 7 ? 'text-green-700' :
-                            calcularMediaAluno(aluno.id) >= 5 ? 'text-yellow-700' :
-                            'text-red-700'
-                          }`}>
-                            📊 Média: {calcularMediaAluno(aluno.id).toFixed(1)}
+                          <span className={`text-xs sm:text-sm font-black ${getMediaTextColorClasses(calcularMediaAluno(aluno.id))}`}>
+                            📊 Média: {formatarNota(calcularMediaAluno(aluno.id))}
                           </span>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 rounded-2xl text-lg sm:text-xl font-black shadow-xl ${
-                      calcularMediaAluno(aluno.id) >= 7 ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
-                      calcularMediaAluno(aluno.id) >= 5 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white' :
-                      'bg-gradient-to-r from-red-400 to-red-600 text-white'
-                    }`}>
-                      {calcularMediaAluno(aluno.id).toFixed(1)}
+                    <div className={`inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 rounded-2xl text-lg sm:text-xl font-black shadow-xl ${getMediaGradientClasses(calcularMediaAluno(aluno.id))}`}>
+                      {formatarNota(calcularMediaAluno(aluno.id))}
                     </div>
                     <p className="text-xs text-blue-700 mt-2 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block font-black bg-white px-3 py-1 rounded-xl">
                       ✨ Clique para ver detalhes completos
@@ -533,11 +526,7 @@ export function NotasPage() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className={`px-3 sm:px-4 py-2 rounded-2xl text-sm sm:text-base font-black shadow-lg ${
-                              media >= 7 ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
-                              media >= 5 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white' :
-                              'bg-gradient-to-r from-red-400 to-red-600 text-white'
-                            }`}>
+                            <div className={`px-3 sm:px-4 py-2 rounded-2xl text-sm sm:text-base font-black shadow-lg ${getMediaGradientClasses(media)}`}>
                               {media.toFixed(1)}
                             </div>
                           </div>
@@ -561,17 +550,11 @@ export function NotasPage() {
                                 )}
                               </div>
                               <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 ml-2">
-                                <span className={`text-lg sm:text-xl font-black ${
-                                  (nota.nota || 0) >= 7 ? 'text-green-700' :
-                                  (nota.nota || 0) >= 5 ? 'text-yellow-700' :
-                                  'text-red-700'
-                                }`}>
+                                <span className={`text-lg sm:text-xl font-black ${getNotaTextColor(nota.nota || 0)}`}>
                                   {(nota.nota || 0).toFixed(1)}
                                 </span>
                                 <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full shadow-sm ${
-                                  (nota.nota || 0) >= 7 ? 'bg-green-500' :
-                                  (nota.nota || 0) >= 5 ? 'bg-yellow-500' :
-                                  'bg-red-500'
+                                  getSituacaoAcademica(nota.nota || 0).bgColor
                                 }`}></div>
                               </div>
                             </div>
@@ -674,11 +657,7 @@ export function NotasPage() {
                             max={10}
                           />
                         ) : (
-                          <span className={`text-base sm:text-lg font-bold ${
-                            (nota.nota || (nota as any).valor || 0) >= 7 ? 'text-green-600' :
-                            (nota.nota || (nota as any).valor || 0) >= 5 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
+                          <span className={`text-base sm:text-lg font-bold ${getNotaTextColor(nota.nota || (nota as any).valor || 0)}`}>
                             {(nota.nota || (nota as any).valor || 0).toFixed(1)}
                           </span>
                         )}
@@ -798,12 +777,8 @@ export function NotasPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs sm:text-sm font-medium text-blue-600">Média Geral</p>
-                        <p className={`text-xl sm:text-2xl font-bold ${
-                          calcularMediaAluno(selectedAluno.id) >= 7 ? 'text-green-600' :
-                          calcularMediaAluno(selectedAluno.id) >= 5 ? 'text-yellow-600' :
-                          'text-red-600'
-                        }`}>
-                          {calcularMediaAluno(selectedAluno.id).toFixed(1)}
+                        <p className={`text-xl sm:text-2xl font-bold ${getNotaTextColor(calcularMediaAluno(selectedAluno.id))}`}>
+                          {formatarNota(calcularMediaAluno(selectedAluno.id))}
                         </p>
                       </div>
                       <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
@@ -876,11 +851,7 @@ export function NotasPage() {
                             <p className="text-xs sm:text-sm text-gray-500">{notasDisciplina.length} nota(s)</p>
                           </div>
                           <div className="ml-auto">
-                            <span className={`text-base sm:text-lg font-bold ${
-                              media >= 7 ? 'text-green-600' :
-                              media >= 5 ? 'text-yellow-600' :
-                              'text-red-600'
-                            }`}>
+                            <span className={`text-base sm:text-lg font-bold ${getNotaTextColor(media)}`}>
                               {media.toFixed(1)}
                             </span>
                           </div>
@@ -892,11 +863,7 @@ export function NotasPage() {
                                 {nota.trimestre}º Trimestre
                                 {nota.comentario && ` • ${nota.comentario}`}
                               </span>
-                              <span className={`font-medium flex-shrink-0 ${
-                                (nota.nota || 0) >= 7 ? 'text-green-600' :
-                                (nota.nota || 0) >= 5 ? 'text-yellow-600' :
-                                'text-red-600'
-                              }`}>
+                              <span className={`font-medium flex-shrink-0 ${getNotaTextColor(nota.nota || 0)}`}>
                                 {(nota.nota || 0).toFixed(1)}
                               </span>
                             </div>

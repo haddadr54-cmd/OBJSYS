@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { GraduationCap, Search, Filter, Eye, MessageSquare, BookOpen, Calendar, MessageCircle, Users, TrendingUp, Star, Zap, User, Phone, Mail, BarChart3 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { GraduationCap, Search, Filter, MessageSquare, BookOpen, Calendar, MessageCircle, Users, Star, Zap, BarChart3 } from 'lucide-react';
 import { LancarNotasModal } from '../Modals/LancarNotasModal';
 import { EnviarRecadoModal } from '../Modals/EnviarRecadoModal';
 import { VerAlunosModal } from '../Modals/VerAlunosModal';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import type { Turma, Aluno, Usuario } from '../../lib/supabase';
 
@@ -25,7 +25,7 @@ export function AlunosTeacherPage({ onPageChange }: AlunosTeacherPageProps) {
   const [showLancarNotasModal, setShowLancarNotasModal] = useState(false);
   const [showEnviarRecadoModal, setShowEnviarRecadoModal] = useState(false);
   const [showAlunoDetailModal, setShowAlunoDetailModal] = useState(false);
-  const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null);
+  const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null); // Usado em verPerfilCompleto
 
   useEffect(() => {
     if (user) {
@@ -53,41 +53,13 @@ export function AlunosTeacherPage({ onPageChange }: AlunosTeacherPageProps) {
     }
   };
 
-  const sendWhatsAppToResponsavel = async (aluno: Aluno) => {
-    const alunoComDetalhes = getAlunoWithDetails(aluno);
-    const responsavel = alunoComDetalhes.responsavel;
-    
-    if (!responsavel?.telefone) {
-      alert('O responsável deste aluno não possui telefone cadastrado.');
-      return;
-    }
-
-    const message = `Olá ${responsavel.nome}! Esta é uma mensagem do Professor ${user?.nome} sobre seu filho(a) ${aluno.nome}.`;
-    
-    try {
-      // Formatar número para Z-API (apenas números)
-      const cleanNumber = responsavel.telefone.replace(/\D/g, '');
-      
-      const response = await fetch('https://api.z-api.io/instances/3E77C41E18874016EF0E2676AA920B85/token/485FD874492F6CFAAC3069AD/send-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: cleanNumber,
-          message: message
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && !data.error) {
-        alert(`✅ Mensagem enviada com sucesso para ${responsavel.nome} (responsável por ${aluno.nome})!`);
-      } else {
-        alert(`❌ Erro ao enviar mensagem: ${data.message || data.error || 'Erro desconhecido'}`);
-      }
-    } catch (error) {
-      console.error('Erro ao enviar WhatsApp:', error);
-      alert('❌ Erro ao enviar mensagem via WhatsApp');
-    }
+  // Helper: montar link para abrir WhatsApp com mensagem
+  const buildWhatsappLink = (phone?: string, message?: string) => {
+    if (!phone) return '';
+    const digits = String(phone).replace(/\D/g, '');
+    const withCC = digits.startsWith('55') ? digits : `55${digits}`;
+    const text = message ? `?text=${encodeURIComponent(message)}` : '';
+    return `https://wa.me/${withCC}${text}`;
   };
 
   const getAlunoWithDetails = (aluno: Aluno) => {
@@ -105,25 +77,25 @@ export function AlunosTeacherPage({ onPageChange }: AlunosTeacherPageProps) {
     return matchBusca && matchTurma;
   });
 
-  const enviarRecado = (aluno: Aluno) => {
-    console.log('Enviar recado para:', aluno.nome);
-    // Implementar envio de recado
-  };
+  // const enviarRecado = (aluno: Aluno) => {
+  //   console.log('Enviar recado para:', aluno.nome);
+  //   // Implementar envio de recado
+  // };
 
-  const verNotas = (aluno: Aluno) => {
-    console.log('Ver notas de:', aluno.nome);
-    // Implementar visualização de notas
-  };
+  // const verNotas = (aluno: Aluno) => {
+  //   console.log('Ver notas de:', aluno.nome);
+  //   // Implementar visualização de notas
+  // };
 
   const verPerfilCompleto = (aluno: Aluno) => {
     setSelectedAluno(aluno);
     setShowAlunoDetailModal(true);
   };
 
-  const marcarPresenca = (aluno: Aluno) => {
-    console.log('Marcar presença de:', aluno.nome);
-    // Implementar marcação de presença
-  };
+  // const marcarPresenca = (aluno: Aluno) => {
+  //   console.log('Marcar presença de:', aluno.nome);
+  //   // Implementar marcação de presença
+  // };
 
   if (loading) {
     return (
@@ -254,158 +226,58 @@ export function AlunosTeacherPage({ onPageChange }: AlunosTeacherPageProps) {
         </div>
       </div>
 
-      {/* Lista de alunos espetacular */}
+      {/* Lista de alunos - formato lista vertical */}
       {alunosFiltrados.length === 0 ? (
-        <div className="bg-gradient-to-br from-white via-gray-50 to-blue-50 rounded-3xl shadow-2xl border-2 border-gray-200 p-12 sm:p-16 lg:p-20 text-center animate-slide-in-up">
-          <div className="p-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-fit mx-auto mb-8 animate-bounce-soft">
-            <GraduationCap className="h-16 w-16 sm:h-20 sm:w-20 text-gray-400" />
-          </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-6">🎓 Nenhum aluno encontrado</h3>
-          <p className="text-gray-600 text-lg sm:text-xl font-semibold">Ajuste os filtros ou verifique se há alunos nas suas turmas.</p>
+        <div className="bg-white rounded-xl shadow p-8 text-center border border-gray-200">
+          <GraduationCap className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Nenhum aluno encontrado</h3>
+          <p className="text-gray-500">Ajuste os filtros ou verifique se há alunos nas suas turmas.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
-          {alunosFiltrados.map((aluno, index) => {
+  <ul className="divide-y divide-gray-100 bg-white rounded-2xl shadow-lg border border-gray-200">
+          {alunosFiltrados.map((aluno) => {
             const alunoComDetalhes = getAlunoWithDetails(aluno);
             return (
-              <div 
-                key={aluno.id} 
-                className={`bg-gradient-to-br from-white via-green-50 to-emerald-50 rounded-2xl sm:rounded-3xl shadow-xl border-2 border-green-200 hover:shadow-2xl hover:border-green-400 hover:scale-110 hover:rotate-1 transition-all duration-500 cursor-pointer group animate-scale-in`}
-                style={{ animationDelay: `${index * 100}ms` }}
-                onClick={() => verPerfilCompleto(aluno)}
-              >
-                <div className="p-6 sm:p-8">
-                  {/* Header do Aluno */}
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 rounded-2xl sm:rounded-3xl flex items-center justify-center text-white font-black text-xl sm:text-2xl shadow-2xl animate-float">
-                        {aluno.nome.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h3 className="text-xl sm:text-2xl font-black text-gray-900 group-hover:text-green-700 transition-colors leading-tight">{aluno.nome}</h3>
-                        <p className="text-sm sm:text-base text-gray-600 font-bold">🏫 {alunoComDetalhes.turma?.nome}</p>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="text-xs sm:text-sm text-green-600 font-bold">Ativo</span>
-                        </div>
-                      </div>
-                    </div>
+              <li key={aluno.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 px-8 py-7 hover:bg-gray-50 transition cursor-pointer text-base">
+                <div className="flex items-center gap-6 min-w-0 w-full">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white flex items-center justify-center font-black text-2xl">
+                    {aluno.nome.charAt(0).toUpperCase()}
                   </div>
-
-                  {/* Informações do Aluno */}
-                  <div className="space-y-4 mb-6">
-                    <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-green-100">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <User className="h-5 w-5 text-green-600" />
-                        </div>
-                        <span className="text-sm sm:text-base font-bold text-gray-700">👨‍👩‍👧‍👦 Responsável</span>
-                      </div>
-                      <span className="text-sm sm:text-base font-black text-green-600 truncate max-w-24">
-                        {alunoComDetalhes.responsavel?.nome || 'Não informado'}
-                      </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <button type="button" className="font-bold text-gray-900 truncate max-w-xs underline hover:text-emerald-700 focus:outline-none" onClick={e => { e.stopPropagation(); verPerfilCompleto(aluno); }}>
+                        {aluno.nome}
+                      </button>
+                      {alunoComDetalhes.turma?.nome && (
+                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100">{alunoComDetalhes.turma?.nome}</span>
+                      )}
+                      <span className="px-2 py-0.5 rounded bg-green-50 text-green-700 text-xs font-semibold border border-green-100">Ativo</span>
                     </div>
-
-                    {alunoComDetalhes.responsavel?.email && (
-                      <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-blue-100">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <Mail className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <span className="text-sm sm:text-base font-bold text-gray-700">📧 Email</span>
-                        </div>
-                        <span className="text-xs sm:text-sm text-blue-600 font-semibold truncate max-w-32">
-                          {alunoComDetalhes.responsavel.email}
-                        </span>
-                      </div>
-                    )}
-
-                    {alunoComDetalhes.responsavel?.telefone && (
-                      <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-purple-100">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-purple-100 rounded-lg">
-                            <Phone className="h-5 w-5 text-purple-600" />
-                          </div>
-                          <span className="text-sm sm:text-base font-bold text-gray-700">📱 Telefone</span>
-                        </div>
-                        <span className="text-sm sm:text-base text-purple-600 font-semibold">
-                          {alunoComDetalhes.responsavel.telefone}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Ações Rápidas Espetaculares */}
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowLancarNotasModal(true);
-                        }}
-                        className="flex items-center justify-center space-x-2 p-3 sm:p-4 text-sm sm:text-base text-white bg-gradient-to-r from-blue-500 to-blue-700 border-2 border-blue-300 rounded-xl sm:rounded-2xl hover:from-blue-600 hover:to-blue-800 hover:scale-110 hover:shadow-xl transition-all duration-300 font-black"
-                      >
-                        <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline">Notas</span>
-                        <span className="sm:hidden">📝</span>
-                      </button>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onPageChange) {
-                            console.log('🔍 [AlunosTeacherPage] Navegando para presenca');
-                            onPageChange('presenca');
-                          } else {
-                            console.error('❌ onPageChange não está disponível');
-                          }
-                        }}
-                        className="flex items-center justify-center space-x-2 p-3 sm:p-4 text-sm sm:text-base text-white bg-gradient-to-r from-green-500 to-green-700 border-2 border-green-300 rounded-xl sm:rounded-2xl hover:from-green-600 hover:to-green-800 hover:scale-110 hover:shadow-xl transition-all duration-300 font-black"
-                      >
-                        <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline">Presença</span>
-                        <span className="sm:hidden">✅</span>
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowEnviarRecadoModal(true);
-                        }}
-                        className="flex items-center justify-center space-x-2 p-3 sm:p-4 text-sm sm:text-base text-white bg-gradient-to-r from-purple-500 to-purple-700 border-2 border-purple-300 rounded-xl sm:rounded-2xl hover:from-purple-600 hover:to-purple-800 hover:scale-110 hover:shadow-xl transition-all duration-300 font-black"
-                      >
-                        <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline">Recado</span>
-                        <span className="sm:hidden">💌</span>
-                      </button>
-                      {(alunoComDetalhes.responsavel?.telefone || (aluno as any).telefone_responsavel) && (
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            sendWhatsAppToResponsavel(aluno);
-                          }}
-                          className="flex items-center justify-center space-x-2 p-3 sm:p-4 text-sm sm:text-base text-white bg-gradient-to-r from-green-500 to-emerald-600 border-2 border-green-300 rounded-xl sm:rounded-2xl hover:from-green-600 hover:to-emerald-700 hover:scale-110 hover:shadow-xl transition-all duration-300 font-black"
-                        >
-                          <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-                          <span className="hidden sm:inline">WhatsApp</span>
-                          <span className="sm:hidden">📱</span>
-                        </button>
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                      <span>Responsável: <span className="font-semibold text-gray-800">{alunoComDetalhes.responsavel?.nome || 'Não informado'}</span></span>
+                      {alunoComDetalhes.responsavel?.email && (
+                        <span>Email: <span className="font-semibold text-blue-700">{alunoComDetalhes.responsavel.email}</span></span>
+                      )}
+                      {alunoComDetalhes.responsavel?.telefone && (
+                        <span>Tel: <span className="font-semibold text-purple-700">{alunoComDetalhes.responsavel.telefone}</span></span>
                       )}
                     </div>
                   </div>
-
-                  {/* Indicador de Clique */}
-                  <div className="mt-6 pt-6 border-t-2 border-green-200 text-center">
-                    <p className="text-xs sm:text-sm text-green-700 opacity-0 group-hover:opacity-100 transition-opacity font-black bg-white px-4 py-2 rounded-xl shadow-lg">
-                      ✨ Clique para ver perfil completo do aluno
-                    </p>
-                  </div>
                 </div>
-              </div>
+                <div className="flex flex-row flex-wrap gap-2 mt-2 sm:mt-0">
+                  <button onClick={e => { e.stopPropagation(); setShowLancarNotasModal(true); }} className="px-3 py-1 bg-blue-600 text-white rounded font-bold text-xs hover:bg-blue-700">Notas</button>
+                  <button onClick={e => { e.stopPropagation(); if (onPageChange) { onPageChange('presenca'); }}} className="px-3 py-1 bg-green-600 text-white rounded font-bold text-xs hover:bg-green-700">Presença</button>
+                  <button onClick={e => { e.stopPropagation(); setShowEnviarRecadoModal(true); }} className="px-3 py-1 bg-purple-600 text-white rounded font-bold text-xs hover:bg-purple-700">Recado</button>
+                  {(alunoComDetalhes.responsavel?.telefone || (aluno as any).telefone_responsavel) && (
+                    <a href={buildWhatsappLink(alunoComDetalhes.responsavel?.telefone || (aluno as any).telefone_responsavel, `Olá ${alunoComDetalhes.responsavel?.nome || ''}! Sou o(a) Prof. ${user?.nome}. Sobre o aluno ${aluno.nome}.`)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="px-3 py-1 bg-emerald-600 text-white rounded font-bold text-xs hover:bg-emerald-700 flex items-center gap-1">
+                      <MessageCircle className="h-4 w-4" /> WhatsApp
+                    </a>
+                  )}
+                </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
       {/* Ações Rápidas Globais */}
@@ -493,6 +365,7 @@ export function AlunosTeacherPage({ onPageChange }: AlunosTeacherPageProps) {
 
       <VerAlunosModal
         isOpen={showAlunoDetailModal}
+        aluno={selectedAluno || undefined}
         onClose={() => {
           setShowAlunoDetailModal(false);
           setSelectedAluno(null);

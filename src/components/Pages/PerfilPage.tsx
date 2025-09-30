@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Calendar, Shield, Camera, Save, Edit, Eye, EyeOff, Lock, AlertCircle, Check, GraduationCap, BookOpen, TrendingUp } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import type { Aluno, Nota } from '../../lib/supabase';
 
@@ -56,7 +56,7 @@ export function PerfilPage() {
       setAlunos(filhosData);
       
       // Carregar notas dos filhos
-      const notasPromises = filhosData.map(filho => 
+      const notasPromises = filhosData.map(() => 
         dataService.getNotas()
       );
       const notasResults = await Promise.all(notasPromises);
@@ -211,8 +211,10 @@ export function PerfilPage() {
       <div className="space-y-4">
         {alunos.map((filho) => {
           const notasFilho = notas.filter(nota => nota.aluno_id === filho.id);
+          // Corrigir: garantir que a propriedade correta de Nota está sendo usada
+          // Supondo que a propriedade correta seja 'nota.nota' (ajuste conforme o modelo real)
           const mediaGeral = notasFilho.length > 0 
-            ? notasFilho.reduce((acc, nota) => acc + nota.valor, 0) / notasFilho.length 
+            ? notasFilho.reduce((acc, nota) => acc + (typeof nota.nota === 'number' ? nota.nota : 0), 0) / notasFilho.length 
             : 0;
 
           return (

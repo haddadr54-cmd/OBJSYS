@@ -1,21 +1,16 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Home, 
   Users, 
   GraduationCap,
-  BookOpen,
   Settings,
   LogOut,
   X,
-  Bell,
-  Search,
-  Star,
   BarChart3,
   MessageSquare,
-  Calendar,
   FileText
 } from 'lucide-react';
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../../contexts/auth";
 
 interface TabsSidebarProps {
   currentPage: string;
@@ -31,7 +26,6 @@ export function TabsSidebar({ currentPage, onPageChange, isOpen, onToggle, menuI
   const [activeCategory, setActiveCategory] = useState('main');
 
   // Aplicar configurações quando disponíveis
-  const showSearch = config?.showSearch !== false;
   const showBadges = config?.showBadges !== false;
   const showDescriptions = config?.showDescriptions !== false;
   const showUserInfo = config?.showUserInfo !== false;
@@ -105,11 +99,11 @@ export function TabsSidebar({ currentPage, onPageChange, isOpen, onToggle, menuI
               </div>
               <div className="flex-1 min-w-0">
                 <span className="font-medium">{item.label}</span>
-                {item.description && (
+                {showDescriptions && item.description && (
                   <p className="text-xs text-gray-500 mt-1">{item.description}</p>
                 )}
               </div>
-              {item.badge && (
+              {showBadges && item.badge && (
                 <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
                   {item.badge}
                 </span>

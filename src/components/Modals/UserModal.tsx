@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Lock, Shield, Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
-import { Usuario, createUsuario, updateUsuario } from '../../lib/supabase';
+import type { Usuario } from '../../lib/supabase.types';
+import { createUsuario, updateUsuario } from '../../lib/supabase';
 
 interface UserModalProps {
   isOpen: boolean;

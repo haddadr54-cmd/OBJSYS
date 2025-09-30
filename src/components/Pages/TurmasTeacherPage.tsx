@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Eye, BookOpen, Calendar, MessageSquare, BarChart3, GraduationCap, TrendingUp, Star, Zap, School, Clock, User, Phone, MessageCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, BookOpen, Calendar, MessageSquare, BarChart3, GraduationCap, Zap } from 'lucide-react';
 import { LancarNotasModal } from '../Modals/LancarNotasModal';
 import { EnviarRecadoModal } from '../Modals/EnviarRecadoModal';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import type { Turma, Aluno } from '../../lib/supabase';
 
@@ -108,9 +108,7 @@ export function TurmasTeacherPage({ onPageChange }: TurmasTeacherPageProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm lg:text-base font-black text-green-600 uppercase tracking-wider">🎓 Alunos</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-green-700 animate-glow">
-                {turmas.reduce((total, turma) => total + getTurmaStats(turma.id).totalAlunos, 0)}
-              </p>
+              <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-green-700 animate-glow">{turmas.reduce((total, turma) => total + getTurmaStats(turma.id).totalAlunos, 0)}</p>
               <p className="text-xs sm:text-sm text-green-500 font-bold">Total</p>
             </div>
             <div className="p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl sm:rounded-3xl shadow-2xl animate-float">
@@ -123,12 +121,7 @@ export function TurmasTeacherPage({ onPageChange }: TurmasTeacherPageProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm lg:text-base font-black text-purple-600 uppercase tracking-wider">📊 Média</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-purple-700 animate-glow">
-                {turmas.length > 0 
-                  ? Math.round(turmas.reduce((total, turma) => total + getTurmaStats(turma.id).totalAlunos, 0) / turmas.length)
-                  : 0
-                }
-              </p>
+              <p className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-purple-700 animate-glow">{turmas.length > 0 ? Math.round(turmas.reduce((total, turma) => total + getTurmaStats(turma.id).totalAlunos, 0) / turmas.length) : 0}</p>
               <p className="text-xs sm:text-sm text-purple-500 font-bold">Por turma</p>
             </div>
             <div className="p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl sm:rounded-3xl shadow-2xl animate-float">
@@ -151,132 +144,45 @@ export function TurmasTeacherPage({ onPageChange }: TurmasTeacherPageProps) {
         </div>
       </div>
 
-      {/* Lista de turmas espetacular */}
+      {/* Lista de turmas - formato lista vertical */}
       {turmas.length === 0 ? (
-        <div className="bg-gradient-to-br from-white via-gray-50 to-blue-50 rounded-3xl shadow-2xl border-2 border-gray-200 p-12 sm:p-16 lg:p-20 text-center animate-slide-in-up">
-          <div className="p-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-fit mx-auto mb-8 animate-bounce-soft">
-            <Users className="h-16 w-16 sm:h-20 sm:w-20 text-gray-400" />
-          </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-6">🏫 Nenhuma turma atribuída</h3>
-          <p className="text-gray-600 text-lg sm:text-xl font-semibold">Entre em contato com a administração para ter turmas atribuídas.</p>
+        <div className="bg-white rounded-xl shadow p-8 text-center border border-gray-200">
+          <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Nenhuma turma atribuída</h3>
+          <p className="text-gray-500">Entre em contato com a administração para ter turmas atribuídas.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
-          {turmas.map((turma, index) => {
+  <ul className="divide-y divide-gray-100 bg-white rounded-2xl shadow-lg border border-gray-200">
+          {turmas.map((turma) => {
             const stats = getTurmaStats(turma.id);
             return (
-              <div 
-                key={turma.id} 
-                className={`bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-2xl sm:rounded-3xl shadow-xl border-2 border-blue-200 hover:shadow-2xl hover:border-blue-400 hover:scale-110 hover:rotate-1 transition-all duration-500 cursor-pointer group animate-scale-in`}
-                style={{ animationDelay: `${index * 100}ms` }}
-                onClick={() => console.log('Ver detalhes da turma:', turma.nome)}
-              >
-                <div className="p-6 sm:p-8">
-                  {/* Header da Turma */}
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl sm:rounded-3xl flex items-center justify-center text-white font-black text-xl sm:text-2xl shadow-2xl animate-float">
-                        {turma.nome.charAt(0)}
-                      </div>
-                      <div>
-                        <h3 className="text-xl sm:text-2xl font-black text-gray-900 group-hover:text-blue-700 transition-colors leading-tight">{turma.nome}</h3>
-                        <p className="text-sm sm:text-base text-gray-600 font-bold">📅 {turma.ano_letivo}</p>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                          <span className="text-xs sm:text-sm text-green-600 font-bold">Ativa</span>
-                        </div>
-                      </div>
-                    </div>
+              <li key={turma.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 px-8 py-7 hover:bg-gray-50 transition cursor-pointer text-base">
+                <div className="flex items-center gap-6 min-w-0 w-full">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 text-white flex items-center justify-center font-black text-2xl">
+                    {turma.nome.charAt(0)}
                   </div>
-
-                  {/* Estatísticas da Turma */}
-                  <div className="space-y-4 mb-6">
-                    <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-blue-100">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Users className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <span className="text-sm sm:text-base font-bold text-gray-700">👥 Alunos</span>
-                      </div>
-                      <span className="text-lg sm:text-xl font-black text-blue-600">{stats.totalAlunos}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="font-bold text-gray-900 truncate max-w-xs">{turma.nome}</span>
+                      <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">{turma.ano_letivo}</span>
+                      <span className="px-2 py-0.5 rounded bg-green-50 text-green-700 text-xs font-semibold border border-green-100">Ativa</span>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-green-100">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <BookOpen className="h-5 w-5 text-green-600" />
-                        </div>
-                        <span className="text-sm sm:text-base font-bold text-gray-700">📚 Disciplinas</span>
-                      </div>
-                      <span className="text-lg sm:text-xl font-black text-green-600">5</span>
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                      <span>Alunos: <span className="font-semibold text-blue-700">{stats.totalAlunos}</span></span>
+                      <span>Disciplinas: <span className="font-semibold text-green-700">5</span></span>
+                      <span>Média: <span className="font-semibold text-purple-700">8.2</span></span>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-purple-100">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                          <TrendingUp className="h-5 w-5 text-purple-600" />
-                        </div>
-                        <span className="text-sm sm:text-base font-bold text-gray-700">📊 Média</span>
-                      </div>
-                      <span className="text-lg sm:text-xl font-black text-purple-600">8.2</span>
-                    </div>
-                  </div>
-
-                  {/* Ações Rápidas Espetaculares */}
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowLancarNotasModal(true);
-                        }}
-                        className="flex items-center justify-center space-x-2 p-3 sm:p-4 text-sm sm:text-base text-white bg-gradient-to-r from-blue-500 to-blue-700 border-2 border-blue-300 rounded-xl sm:rounded-2xl hover:from-blue-600 hover:to-blue-800 hover:scale-110 hover:shadow-xl transition-all duration-300 font-black"
-                      >
-                        <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline">Notas</span>
-                        <span className="sm:hidden">📝</span>
-                      </button>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onPageChange) {
-                            console.log('🔍 [TurmasTeacherPage] Navegando para presenca');
-                            onPageChange('presenca');
-                          } else {
-                            console.error('❌ onPageChange não está disponível');
-                          }
-                        }}
-                        className="flex items-center justify-center space-x-2 p-3 sm:p-4 text-sm sm:text-base text-white bg-gradient-to-r from-green-500 to-green-700 border-2 border-green-300 rounded-xl sm:rounded-2xl hover:from-green-600 hover:to-green-800 hover:scale-110 hover:shadow-xl transition-all duration-300 font-black"
-                      >
-                        <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline">Presença</span>
-                        <span className="sm:hidden">✅</span>
-                      </button>
-                    </div>
-
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowEnviarRecadoModal(true);
-                      }}
-                      className="w-full flex items-center justify-center space-x-2 p-3 sm:p-4 text-sm sm:text-base text-white bg-gradient-to-r from-purple-500 to-purple-700 border-2 border-purple-300 rounded-xl sm:rounded-2xl hover:from-purple-600 hover:to-purple-800 hover:scale-105 hover:shadow-xl transition-all duration-300 font-black"
-                    >
-                      <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span>💌 Enviar Recado</span>
-                    </button>
-                  </div>
-
-                  {/* Indicador de Clique */}
-                  <div className="mt-6 pt-6 border-t-2 border-blue-200 text-center">
-                    <p className="text-xs sm:text-sm text-blue-700 opacity-0 group-hover:opacity-100 transition-opacity font-black bg-white px-4 py-2 rounded-xl shadow-lg">
-                      ✨ Clique para ver detalhes completos da turma
-                    </p>
                   </div>
                 </div>
-              </div>
+                <div className="flex flex-row flex-wrap gap-2 mt-2 sm:mt-0">
+                  <button onClick={e => { e.stopPropagation(); setShowLancarNotasModal(true); }} className="px-3 py-1 bg-blue-600 text-white rounded font-bold text-xs hover:bg-blue-700">Notas</button>
+                  <button onClick={e => { e.stopPropagation(); if (onPageChange) { onPageChange('presenca'); }}} className="px-3 py-1 bg-green-600 text-white rounded font-bold text-xs hover:bg-green-700">Presença</button>
+                  <button onClick={e => { e.stopPropagation(); setShowEnviarRecadoModal(true); }} className="px-3 py-1 bg-purple-600 text-white rounded font-bold text-xs hover:bg-purple-700">Recado</button>
+                </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
       {/* Ações Rápidas Globais */}

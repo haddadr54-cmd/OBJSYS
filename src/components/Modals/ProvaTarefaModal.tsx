@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, BookOpen, Users, FileText, Save, AlertCircle, Check, Clock } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import type { Turma, Disciplina, ProvaTarefa } from '../../lib/supabase';
 

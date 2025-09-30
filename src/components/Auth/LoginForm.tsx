@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, AlertCircle, ExternalLink, HelpCircle, Lock, User, School, Monitor, Smartphone, Tablet, Key } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import { HelpInstructionsModal } from './HelpInstructionsModal';
-import { useGlobalConfig } from '../../utils/configManager.tsx';
-
+import { useGlobalConfig } from '../../contexts/globalConfig';
 // Configuração padrão completa da tela de login
 const defaultLoginConfig: LoginCustomization = {
   // Logo e Branding
@@ -36,6 +35,14 @@ const defaultLoginConfig: LoginCustomization = {
   siteButtonText: 'Voltar para o site do Objetivo',
   siteButtonUrl: 'https://objetivo.br',
 
+  // Configurações do Botão de Login
+  loginButtonText: 'Entrar no Sistema',
+  loginButtonColor: '#002776',
+  loginButtonHoverColor: '#001A5C',
+  loginButtonTextColor: '#FFFFFF',
+  loginButtonSize: 'medium',
+  loginButtonStyle: 'solid',
+  loginButtonRounded: true,
   
   // Rodapé
   showFooter: true,
@@ -113,6 +120,15 @@ interface LoginCustomization {
   siteButtonText: string;
   siteButtonUrl: string;
   
+  // Configurações do Botão de Login
+  loginButtonText: string;
+  loginButtonColor: string;
+  loginButtonHoverColor: string;
+  loginButtonTextColor: string;
+  loginButtonSize: 'small' | 'medium' | 'large';
+  loginButtonStyle: 'solid' | 'outline' | 'gradient';
+  loginButtonRounded: boolean;
+  
   // Rodapé
   showFooter: boolean;
   copyrightText: string;
@@ -159,6 +175,7 @@ interface LoginCustomization {
   fontSize: string;
 }
 
+
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -166,45 +183,64 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { configs } = useGlobalConfig();
-  const [customization, setCustomization] = useState<LoginCustomization>(defaultLoginConfig);
-  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false);
   
-  const { signIn } = useAuth();
-
-  useEffect(() => {
-    // Carregar configurações do contexto global
-    if (configs.login_customization) {
-      console.log('📂 Carregando configurações do Supabase:', configs.login_customization);
-      setCustomization({ ...defaultLoginConfig, ...configs.login_customization });
-    } else {
-      console.log('📂 Usando configurações padrão (Supabase não disponível ou sem dados)');
-      setCustomization(defaultLoginConfig);
+  // Sistema sempre renderiza - controle por CSS apenas
+  
+  // Inicialização COMPLETAMENTE SÍNCRONA para prevenir qualquer flash
+  const [customization, setCustomization] = useState<LoginCustomization>(() => {
+    // Sempre inicializar com defaultConfig para garantir consistência
+    let config = { ...defaultLoginConfig };
+    
+    // Tentar carregar do localStorage de forma segura
+    try {
+      const savedConfig = localStorage.getItem('login_customization');
+      if (savedConfig) {
+        const parsed = JSON.parse(savedConfig);
+        config = { ...defaultLoginConfig, ...parsed };
+      }
+    } catch (error) {
+      console.warn('Erro ao carregar config do localStorage:', error);
+      localStorage.removeItem('login_customization');
     }
     
-    // Escutar mensagens do postMessage (para iframe) - manter para preview
-    const handlePostMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'LOGIN_CONFIG_UPDATE') {
-        console.log('📨 LoginForm: Recebendo configuração via postMessage:', event.data.config);
+    return config;
+  });
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const { signIn } = useAuth();
+
+  // Configuração SÍNCRONA apenas quando necessário
+  useEffect(() => {
+    if (configs.login_customization) {
+      setCustomization(prev => ({ ...prev, ...configs.login_customization }));
+    }
+  }, [configs.login_customization]);
+
+  // Cleanup simples
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'LOGIN_CONFIG_UPDATE') {
         const mergedConfig = { ...defaultLoginConfig, ...event.data.config };
         setCustomization(mergedConfig);
       }
     };
     
-    window.addEventListener('message', handlePostMessage);
-    
-    return () => {
-      window.removeEventListener('message', handlePostMessage);
-    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Reagir a mudanças nas configurações globais
+  // Preload simples de imagens
   useEffect(() => {
-    if (configs.login_customization) {
-      console.log('🔄 Atualizando configurações via GlobalConfig:', configs.login_customization);
-      setCustomization({ ...defaultLoginConfig, ...configs.login_customization });
+    if (customization.logoUrl) {
+      const img = new Image();
+      img.src = customization.logoUrl;
     }
-  }, [configs.login_customization]);
+  }, [customization.logoUrl]);
+
+  // Sistema sempre renderiza - flash controlado por CSS
+  // if (!systemReady) {
+  //   return <LoadingScreen />;
+  // }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,6 +259,37 @@ export function LoginForm() {
   const fillCredentials = (userEmail: string, userPassword: string) => {
     setEmail(userEmail);
     setPassword(userPassword);
+  };
+
+
+
+  // Função para estilos do botão COMPLETAMENTE LIMPA
+  const getLoginButtonStyles = () => {
+    const sizeClasses = {
+      small: 'px-4 py-2 text-sm',
+      medium: 'px-6 py-3 text-base',
+      large: 'px-8 py-4 text-lg'
+    };
+
+    const roundedClass = customization.loginButtonRounded ? 'rounded-lg' : 'rounded';
+    const sizeClass = sizeClasses[customization.loginButtonSize] || sizeClasses.medium;
+
+    // Estilos inline seguros e consistentes
+    const buttonStyles: React.CSSProperties = {
+      backgroundColor: customization.loginButtonStyle === 'solid' ? customization.loginButtonColor : 'transparent',
+      color: customization.loginButtonStyle === 'outline' ? customization.loginButtonColor : customization.loginButtonTextColor,
+      border: customization.loginButtonStyle === 'outline' ? `2px solid ${customization.loginButtonColor}` : 'none',
+      backgroundImage: customization.loginButtonStyle === 'gradient' 
+        ? `linear-gradient(45deg, ${customization.loginButtonColor}, ${customization.loginButtonHoverColor})` 
+        : 'none',
+      transition: 'all 0.3s ease',
+      cursor: loading ? 'not-allowed' : 'pointer',
+    };
+
+    return {
+      className: `w-full font-medium disabled:opacity-50 ${sizeClass} ${roundedClass}`,
+      style: buttonStyles,
+    };
   };
 
   const getLayoutClasses = () => {
@@ -511,13 +578,7 @@ export function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-5 sm:py-6 px-6 text-lg sm:text-xl rounded-2xl font-black text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${getShadowClasses()} ${customization.enableAnimations ? 'hover:scale-105 active:scale-95' : ''}`}
-              style={{ 
-                backgroundColor: customization.primaryColor,
-                background: customization.enableGradients 
-                  ? `linear-gradient(135deg, ${customization.primaryColor}, ${customization.secondaryColor})` 
-                  : customization.primaryColor
-              }}
+              {...getLoginButtonStyles()}
             >
               {loading ? (
                 <div className="flex items-center justify-center space-x-3">
@@ -525,7 +586,7 @@ export function LoginForm() {
                   <span className="font-black">Entrando...</span>
                 </div>
               ) : (
-                <span className="font-black">🚀 Entrar no Sistema</span>
+                <span className="font-black">🚀 {customization.loginButtonText}</span>
               )}
             </button>
           </form>
@@ -629,10 +690,9 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 px-6 text-lg rounded-lg font-black text-white transition-all duration-300 disabled:opacity-50"
-            style={{ backgroundColor: customization.primaryColor }}
+            {...getLoginButtonStyles()}
           >
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Entrando...' : customization.loginButtonText}
           </button>
         </form>
       </div>
@@ -687,10 +747,9 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-            style={{ backgroundColor: customization.primaryColor }}
+            {...getLoginButtonStyles()}
           >
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Entrando...' : customization.loginButtonText}
           </button>
         </form>
       </div>
@@ -762,10 +821,9 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 text-white rounded-lg font-bold transition-colors disabled:opacity-50"
-            style={{ backgroundColor: customization.primaryColor }}
+            {...getLoginButtonStyles()}
           >
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Entrando...' : customization.loginButtonText}
           </button>
         </form>
       </div>
@@ -828,10 +886,9 @@ export function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-              style={{ backgroundColor: customization.primaryColor }}
+              {...getLoginButtonStyles()}
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? 'Entrando...' : customization.loginButtonText}
             </button>
           </form>
         </div>
@@ -910,10 +967,9 @@ export function LoginForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-4 text-white rounded-lg font-bold transition-colors disabled:opacity-50"
-                style={{ backgroundColor: customization.primaryColor }}
+                {...getLoginButtonStyles()}
               >
-                {loading ? 'Entrando...' : 'Entrar'}
+                {loading ? 'Entrando...' : customization.loginButtonText}
               </button>
             </form>
           </div>
@@ -965,10 +1021,9 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-          style={{ backgroundColor: customization.primaryColor }}
+          {...getLoginButtonStyles()}
         >
-          {loading ? 'Entrando...' : 'Entrar'}
+          {loading ? 'Entrando...' : customization.loginButtonText}
         </button>
       </form>
     </div>
@@ -1028,10 +1083,9 @@ export function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 text-white rounded-lg font-bold transition-colors disabled:opacity-50"
-              style={{ backgroundColor: customization.primaryColor }}
+              {...getLoginButtonStyles()}
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? 'Entrando...' : customization.loginButtonText}
             </button>
           </form>
         </div>
@@ -1042,11 +1096,14 @@ export function LoginForm() {
   return (
     <>
       <div 
-        className={`${getLayoutClasses()} ${getFontClasses()} ${customization.highContrast ? 'contrast-125' : ''} ${customization.reducedMotion ? 'motion-reduce' : ''}`} 
+        className={`login-container loaded ${getLayoutClasses()} ${getFontClasses()} ${customization.highContrast ? 'contrast-125' : ''} ${customization.reducedMotion ? 'motion-reduce' : ''}`} 
         style={{
+          opacity: 1, // SEMPRE VISÍVEL
+          visibility: 'visible', // SEMPRE VISÍVEL  
+          transform: 'translateY(0)', // POSIÇÃO NORMAL
           background: customization.enableGradients && customization.layoutStyle !== 'minimal'
             ? `linear-gradient(135deg, ${customization.primaryColor}10, ${customization.secondaryColor}10)`
-            : undefined,
+            : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', // Background padrão
           ...getBackgroundEffectStyles()
         }}
       >

@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy } from 'react';
+// Nota: Removido import default de React (React 17+ com runtime automático)
 import { 
   Users, 
   GraduationCap, 
   BookOpen, 
   Calendar, 
   MessageSquare, 
-  ClipboardList, 
   TrendingUp, 
-  LogOut, 
-  Plus, 
   Zap,
   Settings,
   School,
@@ -16,86 +14,57 @@ import {
   Menu,
   Shield,
   Database,
-  FileText,
-  Eye,
-  Edit,
-  Trash2,
-  UserCheck,
-  UserX,
-  Lock,
-  Unlock,
-  Key,
   AlertTriangle,
   CheckCircle,
-  Info,
-  Save,
-  X,
-  RotateCcw,
   Monitor,
   Palette,
-  HelpCircle,
   MessageCircle
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import { SidebarManager } from '../Layout/SidebarManager';
+import { useGlobalConfig } from '../../contexts/globalConfig/useGlobalConfig';
 import { Header } from '../Layout/Header';
+import { Footer } from '../Layout/Footer';
 
-import { NotasPage } from '../Pages/NotasPage';
-import { AgendaPage } from '../Pages/AgendaPage';
-import { MateriaisPage } from '../Pages/MateriaisPage';
-import { RecadosPage } from '../Pages/RecadosPage';
-import { PerfilPage } from '../Pages/PerfilPage';
-import { UsuariosPage } from '../Pages/UsuariosPage';
-import { AlunosAdminPage } from '../Pages/AlunosAdminPage';
-import { TurmasPage } from '../Pages/TurmasPage';
-import { DisciplinasPage } from '../Pages/DisciplinasPage';
-import { RelatoriosPage } from '../Pages/RelatoriosPage';
-import { ConfiguracoesPage } from '../Pages/ConfiguracoesPage';
-import { EditarInformacoesPage } from '../Pages/EditarInformacoesPage';
-import { PersonalizacaoVisualPage } from '../Pages/PersonalizacaoVisualPage';
-import { PersonalizacaoSidebarPage } from '../Pages/PersonalizacaoSidebarPage';
-import { DadosImportExportPage } from '../Pages/DadosImportExportPage';
-import { ManutencaoPage } from '../Pages/ManutencaoPage';
-import { AuditoriaPage } from '../Pages/AuditoriaPage';
-import { NotificacoesPage } from '../Pages/NotificacoesPage';
-import { ConfiguracaoAjudaPage } from '../Pages/ConfiguracaoAjudaPage';
-import { PermissoesPage } from '../Pages/PermissoesPage';
-import { PresencaPage } from '../Pages/PresencaPage';
-import { WhatsAppPage } from '../Pages/WhatsAppPage';
-import { PersonalizacaoLoginPage } from '../Pages/PersonalizacaoLoginPage';
+import { createOptimizedLazy, useSmartPreload, OptimizedSuspense } from '../Layout/OptimizedSuspense';
 
+// Páginas principais otimizadas com preload inteligente
+const NotasPage = createOptimizedLazy(() => import('../Pages/NotasPage').then(m => ({ default: m.NotasPage })), 'NotasPage', true);
+const RecuperacaoPage = createOptimizedLazy(() => import('../Pages/RecuperacaoPage'), 'RecuperacaoPage', true);
+const AgendaPage = createOptimizedLazy(() => import('../Pages/AgendaPage').then(m => ({ default: m.AgendaPage })), 'AgendaPage');
+const MateriaisPage = createOptimizedLazy(() => import('../Pages/MateriaisPage').then(m => ({ default: m.MateriaisPage })), 'MateriaisPage');
+const RecadosPage = createOptimizedLazy(() => import('../Pages/RecadosPage').then(m => ({ default: m.RecadosPage })), 'RecadosPage');
+const PerfilPage = createOptimizedLazy(() => import('../Pages/PerfilPage').then(m => ({ default: m.PerfilPage })), 'PerfilPage');
+const UsuariosPage = createOptimizedLazy(() => import('../Pages/UsuariosPage').then(m => ({ default: m.UsuariosPage })), 'UsuariosPage');
+const AlunosAdminPage = createOptimizedLazy(() => import('../Pages/AlunosAdminPage').then(m => ({ default: m.AlunosAdminPage })), 'AlunosAdminPage');
+const TurmasPage = createOptimizedLazy(() => import('../Pages/TurmasPage').then(m => ({ default: m.TurmasPage })), 'TurmasPage');
+const DisciplinasPage = createOptimizedLazy(() => import('../Pages/DisciplinasPage').then(m => ({ default: m.DisciplinasPage })), 'DisciplinasPage');
+const ManutencaoPage = createOptimizedLazy(() => import('../Pages/ManutencaoPage').then(m => ({ default: m.ManutencaoPage })), 'ManutencaoPage');
+const WhatsAppPage = createOptimizedLazy(() => import('../Pages/WhatsAppPage').then(m => ({ default: m.WhatsAppPage })), 'WhatsAppPage');
+const NotificacoesPage = createOptimizedLazy(() => import('../Pages/NotificacoesPage').then(m => ({ default: m.NotificacoesPage })), 'NotificacoesPage');
+const PeriodoLetivoPage = createOptimizedLazy(() => import('../Pages/PeriodoLetivoPage'), 'PeriodoLetivoPage');
+
+// Páginas adicionais (lazy loading tradicional)
+const RelatoriosPage = lazy(() => import('../Pages/RelatoriosPage').then(m => ({ default: m.RelatoriosPage })));
+const ConfiguracoesPage = lazy(() => import('../Pages/ConfiguracoesPage').then(m => ({ default: m.ConfiguracoesPage })));
+const EditarInformacoesPage = lazy(() => import('../Pages/EditarInformacoesPage').then(m => ({ default: m.EditarInformacoesPage })));
+const PersonalizacaoSidebarPage = lazy(() => import('../Pages/PersonalizacaoSidebarPage').then(m => ({ default: m.PersonalizacaoSidebarPage })));
+const DadosImportExportPage = lazy(() => import('../Pages/DadosImportExportPage').then(m => ({ default: m.DadosImportExportPage })));
+const AuditoriaPage = lazy(() => import('../Pages/AuditoriaPage').then(m => ({ default: m.AuditoriaPage })));
+const ConfiguracaoAjudaPage = lazy(() => import('../Pages/ConfiguracaoAjudaPage').then(m => ({ default: m.ConfiguracaoAjudaPage })));
+const PermissoesPage = lazy(() => import('../Pages/PermissoesPage').then(m => ({ default: m.PermissoesPage })));
+const PresencaPage = lazy(() => import('../Pages/PresencaPage').then(m => ({ default: m.PresencaPage })));
+const PersonalizacaoLoginPage = lazy(() => import('../Pages/PersonalizacaoLoginPage').then(m => ({ default: m.PersonalizacaoLoginPage })));
+
+// Importa mapa centralizado de títulos para evitar duplicação e facilitar manutenção
+import { pageTitles } from '../../utils/pageTitles';
+
+// Props interface (was missing causing TS error)
 interface AdminDashboardProps {
   onNavigate?: (page: string) => void;
   currentPage?: string;
 }
-
-const pageTitles: Record<string, string> = {
-  dashboard: 'Dashboard Administrativo',
-  usuarios: 'Gerenciar Usuários',
-  alunos: 'Gerenciar Alunos',
-  turmas: 'Gerenciar Turmas',
-  disciplinas: 'Gerenciar Disciplinas',
-  relatorios: 'Relatórios e Análises',
-  configuracoes: 'Configurações do Sistema',
-  'editar-informacoes': 'Informações da Escola',
-  'personalizacao-visual': 'Personalização Visual',
-  'personalizacao-sidebar': 'Personalizar Menu Lateral',
-  'personalizacao-login': 'Personalizar Tela de Login',
-  'dados-importexport': 'Gestão de Dados',
-  'manutencao': 'Manutenção do Sistema',
-  'auditoria': 'Auditoria e Logs',
-  'permissoes': 'Gestão de Permissões',
-  'configuracao-ajuda': 'Configuração de Ajuda',
-  'recados': 'Central de Recados',
-  'materiais': 'Gestão de Materiais',
-  'agenda': 'Agenda Escolar',
-  'notas': 'Gestão de Notas',
-  'presenca': 'Controle de Presença',
-  'notificacoes': 'Central de Notificações',
-  'whatsapp': 'WhatsApp Business',
-  'perfil': 'Meu Perfil'
-};
 
 export function AdminDashboard({ onNavigate, currentPage = 'dashboard' }: AdminDashboardProps) {
   const { user, isSupabaseConnected, signOut } = useAuth();
@@ -115,6 +84,24 @@ export function AdminDashboard({ onNavigate, currentPage = 'dashboard' }: AdminD
   });
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { configs, saveConfig } = useGlobalConfig();
+  const notificationsEnabled = configs.notifications_enabled !== false;
+  const syncEnabled = configs.notifications_sync_enabled !== false;
+  const metricsEnabled = configs.notifications_metrics_enabled !== false;
+  const toggleNotifications = async () => { await saveConfig('notifications_enabled', !notificationsEnabled); };
+  const toggleSync = async () => { await saveConfig('notifications_sync_enabled', !syncEnabled); };
+  const toggleMetrics = async () => { await saveConfig('notifications_metrics_enabled', !metricsEnabled); };
+
+  // Preload inteligente baseado em uso comum do admin
+  useSmartPreload(
+    [currentPage], 
+    [
+      () => import('../Pages/UsuariosPage'),
+      () => import('../Pages/AlunosAdminPage'),
+      () => import('../Pages/TurmasPage'),
+      () => import('../Pages/NotificacoesPage')
+    ]
+  );
 
   const handleLogout = useCallback(async () => {
     if (confirm('Tem certeza que deseja sair do sistema?')) {
@@ -550,7 +537,7 @@ export function AdminDashboard({ onNavigate, currentPage = 'dashboard' }: AdminD
 
             <button
               onClick={() => handleNavigate('notificacoes')}
-              className="group p-6 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border-2 border-blue-200 hover:border-blue-400 rounded-2xl text-left transition-all duration-300 hover:scale-105 hover:shadow-xl"
+              className="group relative p-6 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border-2 border-blue-200 hover:border-blue-400 rounded-2xl text-left transition-all duration-300 hover:scale-105 hover:shadow-xl"
             >
               <div className="flex items-center space-x-4 mb-4">
                 <div className="p-4 bg-blue-500 rounded-xl text-white group-hover:scale-110 transition-transform">
@@ -566,6 +553,51 @@ export function AdminDashboard({ onNavigate, currentPage = 'dashboard' }: AdminD
                 <span className="text-sm text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold bg-white px-3 py-1 rounded-lg">
                   Visualizar →
                 </span>
+              </div>
+              <div className="mt-4 space-y-3 border-t border-blue-200 pt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-blue-700">Sino</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleNotifications(); }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${notificationsEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                    aria-pressed={notificationsEnabled}
+                    aria-label={notificationsEnabled ? 'Desativar exibição do sino' : 'Ativar exibição do sino'}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${notificationsEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-blue-700">Sincronização</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleSync(); }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${syncEnabled ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                    aria-pressed={syncEnabled}
+                    aria-label={syncEnabled ? 'Desativar sincronização de notificações' : 'Ativar sincronização de notificações'}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${syncEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-blue-700">📊 Métricas</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleMetrics(); }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 ${metricsEnabled ? 'bg-purple-600' : 'bg-gray-300'}`}
+                    aria-pressed={metricsEnabled}
+                    aria-label={metricsEnabled ? 'Ocultar seção Métricas & Diagnóstico' : 'Mostrar seção Métricas & Diagnóstico'}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${metricsEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                {(!notificationsEnabled || !syncEnabled || !metricsEnabled) && (
+                  <div className="text-[10px] font-bold uppercase tracking-wide rounded px-2 py-1 border flex items-center gap-2 bg-white/60 backdrop-blur">
+                    {!notificationsEnabled && <span className="text-red-600 border-r pr-2 border-red-300">Sino oculto</span>}
+                    {notificationsEnabled && !syncEnabled && <span className="text-amber-600 border-r pr-2 border-amber-300">Lista congelada</span>}
+                    {!metricsEnabled && <span className="text-purple-600">Métricas ocultas</span>}
+                  </div>
+                )}
               </div>
             </button>
 
@@ -748,33 +780,46 @@ export function AdminDashboard({ onNavigate, currentPage = 'dashboard' }: AdminD
         
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-br from-gray-50 to-blue-50 p-6">
           <div className="max-w-7xl mx-auto mobile-container">
-            {currentPage === 'dashboard' && renderDashboard()}
-            {currentPage === 'usuarios' && <UsuariosPage />}
-            {currentPage === 'alunos' && <AlunosAdminPage />}
-            {currentPage === 'turmas' && <TurmasPage />}
-            {currentPage === 'disciplinas' && <DisciplinasPage />}
-            {currentPage === 'relatorios' && <RelatoriosPage />}
-            {currentPage === 'configuracoes' && <ConfiguracoesPage onNavigate={handleNavigate} />}
-            {currentPage === 'editar-informacoes' && <EditarInformacoesPage />}
-            {currentPage === 'personalizacao-visual' && <PersonalizacaoVisualPage />}
-            {currentPage === 'personalizacao-sidebar' && <PersonalizacaoSidebarPage />}
-            {currentPage === 'personalizacao-login' && <PersonalizacaoLoginPage />}
-            {currentPage === 'dados-importexport' && <DadosImportExportPage />}
-            {currentPage === 'manutencao' && <ManutencaoPage />}
-            {currentPage === 'auditoria' && <AuditoriaPage />}
-            {currentPage === 'permissoes' && <PermissoesPage />}
-            {currentPage === 'configuracao-ajuda' && <ConfiguracaoAjudaPage />}
-            {currentPage === 'notificacoes' && <NotificacoesPage />}
-            {currentPage === 'perfil' && <PerfilPage />}
-            {currentPage === 'recados' && <RecadosPage />}
-            {currentPage === 'materiais' && <MateriaisPage />}
-            {currentPage === 'agenda' && <AgendaPage />}
-            {currentPage === 'notas' && <NotasPage />}
-            {currentPage === 'presenca' && <PresencaPage />}
-            {currentPage === 'whatsapp' && <WhatsAppPage />}
+            <OptimizedSuspense>
+              {currentPage === 'dashboard' && renderDashboard()}
+              {currentPage === 'usuarios' && <UsuariosPage />}
+              {currentPage === 'alunos' && <AlunosAdminPage />}
+              {currentPage === 'turmas' && <TurmasPage />}
+              {currentPage === 'disciplinas' && <DisciplinasPage />}
+              {currentPage === 'relatorios' && <RelatoriosPage />}
+              {(currentPage === 'configuracoes' || currentPage === 'configuracoes-aparencia') && (
+                <ConfiguracoesPage
+                  onNavigate={handleNavigate}
+                  initialTab={currentPage === 'configuracoes-aparencia' ? 'aparencia' : undefined}
+                />
+              )}
+              {currentPage === 'editar-informacoes' && <EditarInformacoesPage />}
+              {currentPage === 'personalizacao-sidebar' && <PersonalizacaoSidebarPage />}
+              {currentPage === 'personalizacao-login' && <PersonalizacaoLoginPage />}
+              {currentPage === 'dados-importexport' && <DadosImportExportPage />}
+              {currentPage === 'manutencao' && <ManutencaoPage />}
+              {currentPage === 'auditoria' && <AuditoriaPage />}
+              {currentPage === 'permissoes' && <PermissoesPage />}
+              {currentPage === 'configuracao-ajuda' && <ConfiguracaoAjudaPage />}
+              {currentPage === 'notificacoes' && <NotificacoesPage />}
+              {currentPage === 'perfil' && <PerfilPage />}
+              {currentPage === 'recados' && <RecadosPage />}
+              {currentPage === 'materiais' && <MateriaisPage />}
+              {currentPage === 'agenda' && <AgendaPage />}
+              {currentPage === 'notas' && <NotasPage />}
+              {currentPage === 'recuperacao' && <RecuperacaoPage />}
+              {currentPage === 'periodo-letivo' && <PeriodoLetivoPage />}
+              {currentPage === 'presenca' && <PresencaPage />}
+              {currentPage === 'whatsapp' && <WhatsAppPage />}
+            </OptimizedSuspense>
           </div>
         </main>
+        
+        {/* Footer */}
+        <Footer />
       </div>
     </div>
   );
 }
+
+export default AdminDashboard;

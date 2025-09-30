@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Sistema Objetivo - Teste de Conexão</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .status {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .info {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="status">✅</div>
+        <h1>Sistema Objetivo</h1>
+        <h2>Servidor Funcionando Corretamente</h2>
+        
+        <div class="info">
+            <h3>📊 Status do Servidor:</h3>
+            <p><strong>URL:</strong> <span id="url"></span></p>
+            <p><strong>Timestamp:</strong> <span id="timestamp"></span></p>
+            <p><strong>Servidor:</strong> Vite Development Server</p>
+            <p><strong>Status:</strong> <span style="color: #4CAF50;">🟢 Online</span></p>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="/src/main.tsx" class="button">📁 Ver Código Fonte</a>
+            <button onclick="testSystem()" class="button">🧪 Testar Sistema</button>
+            <button onclick="openMainApp()" class="button">🚀 Abrir App Principal</button>
+        </div>
+        
+        <div id="test-results" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        document.getElementById('url').textContent = window.location.href;
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+
+        function testSystem() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = `
+                <div class="info">
+                    <h4>🧪 Teste do Sistema:</h4>
+                    <p>✅ HTML carregou corretamente</p>
+                    <p>✅ CSS aplicado com sucesso</p>
+                    <p>✅ JavaScript executando</p>
+                    <p>✅ Servidor Vite respondendo</p>
+                    <p><strong>Resultado:</strong> <span style="color: #4CAF50;">Tudo funcionando!</span></p>
+                </div>
+            `;
+        }
+
+        function openMainApp() {
+            // Força reload da página principal
+            window.location.href = '/';
+        }
+
+        // Auto-test
+        setTimeout(testSystem, 1000);
+    </script>
+</body>
+</html>

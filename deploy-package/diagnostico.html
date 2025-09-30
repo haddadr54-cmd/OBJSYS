@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Objetivo - Diagnóstico</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 500px;
+            width: 100%;
+        }
+        .logo { font-size: 2.5em; margin-bottom: 20px; }
+        .status { 
+            background: rgba(0, 255, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+        .error { 
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        button:hover { transform: translateY(-2px); }
+        .log { 
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🎯 Sistema Objetivo</div>
+        <h2>Diagnóstico do Sistema</h2>
+        
+        <div id="status" class="status">
+            ✅ Servidor funcionando
+        </div>
+        
+        <div>
+            <button onclick="testarSistema()">🔍 Testar Sistema</button>
+            <button onclick="abrirLogin()">🚪 Ir para Login</button>
+        </div>
+        
+        <div id="log" class="log" style="display: none;">
+            <strong>Log do Sistema:</strong><br>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            logDiv.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function testarSistema() {
+            log('🚀 Iniciando teste do sistema...');
+            
+            // Testar se React está funcionando
+            try {
+                log('✅ JavaScript funcionando');
+                log('✅ DOM acessível');
+                log('✅ Fetch API disponível: ' + (typeof fetch !== 'undefined'));
+                log('✅ LocalStorage disponível: ' + (typeof localStorage !== 'undefined'));
+                log('✅ Console disponível: ' + (typeof console !== 'undefined'));
+                
+                // Testar conexão com servidor
+                fetch('http://localhost:5173/')
+                    .then(response => {
+                        if (response.ok) {
+                            log('✅ Servidor Vite respondendo');
+                        } else {
+                            log('❌ Servidor com problema: ' + response.status);
+                        }
+                    })
+                    .catch(error => {
+                        log('❌ Erro de conexão: ' + error.message);
+                    });
+                
+            } catch (error) {
+                log('❌ Erro no teste: ' + error.message);
+            }
+        }
+
+        function abrirLogin() {
+            log('🔄 Redirecionando para sistema principal...');
+            window.location.href = 'http://localhost:5173/';
+        }
+
+        // Executar teste automático
+        window.onload = () => {
+            log('📋 Página de diagnóstico carregada');
+            log('🌐 URL atual: ' + window.location.href);
+            log('🕐 Timestamp: ' + new Date().toLocaleString());
+        };
+    </script>
+</body>
+</html>

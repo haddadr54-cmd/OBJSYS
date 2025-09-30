@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, School, Users, Clock, Calendar, User, AlertCircle, Check, Hash } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, School, Clock, Calendar, User, AlertCircle, Check, Hash } from 'lucide-react';
 import { Turma } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 
 interface TurmaModalProps {
@@ -139,13 +139,13 @@ export function TurmaModal({ isOpen, onClose, turma, onSave }: TurmaModalProps) 
       
       if (turma) {
         // Editar turma existente
-        const turmaAtualizada = await dataService.updateTurma(turma.id, {
+          await dataService.updateTurma(turma.id, {
           nome: formData.nome,
           serie: formData.serie,
           turno: formData.turno,
           ano_letivo: formData.ano_letivo,
-          professor_id: formData.professor_id || null,
-          capacidade: formData.capacidade ? parseInt(formData.capacidade) : null,
+          professor_id: formData.professor_id || undefined,
+          capacidade: formData.capacidade ? parseInt(formData.capacidade) : undefined,
           ativa: formData.ativo,
           observacoes: formData.observacoes
         });
@@ -158,8 +158,8 @@ export function TurmaModal({ isOpen, onClose, turma, onSave }: TurmaModalProps) 
           serie: formData.serie,
           turno: formData.turno,
           ano_letivo: formData.ano_letivo,
-          professor_id: formData.professor_id || null,
-          capacidade: formData.capacidade ? parseInt(formData.capacidade) : null,
+          professor_id: formData.professor_id || undefined,
+          capacidade: formData.capacidade ? parseInt(formData.capacidade) : undefined,
           observacoes: formData.observacoes,
           ativa: formData.ativo
         });
@@ -174,7 +174,7 @@ export function TurmaModal({ isOpen, onClose, turma, onSave }: TurmaModalProps) 
         for (const disciplinaId of disciplinasSelecionadas) {
           await updateDisciplina(disciplinaId, {
             turma_id: turmaId,
-            professor_id: professoresDisciplinas[disciplinaId] || null
+            professor_id: professoresDisciplinas[disciplinaId] || undefined
           });
         }
         console.log('✅ Disciplinas da turma atualizadas');

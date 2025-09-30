@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, Search, Filter, Eye, UserCheck, UserX, MessageCircle, Key, RefreshCw } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { Users, Plus, Edit, Trash2, Search, Filter, Eye, UserCheck, UserX, MessageCircle, Key } from 'lucide-react';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
-import type { Usuario } from '../../lib/supabase';
+import type { Usuario } from '../../lib/supabase.types';
 import { UserModal } from '../Modals/UserModal';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { ResetPasswordModal } from '../Modals/ResetPasswordModal';
+import { UserDetailModal } from '../Modals/UserDetailModal';
 
 export function UsuariosPage() {
   const { user, isSupabaseConnected } = useAuth();
@@ -22,6 +23,8 @@ export function UsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [userForPasswordReset, setUserForPasswordReset] = useState<Usuario | null>(null);
+  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+  const [userForDetails, setUserForDetails] = useState<Usuario | null>(null);
 
   useEffect(() => {
     fetchUsuarios();
@@ -37,39 +40,13 @@ export function UsuariosPage() {
       setLoading(false);
     }
   };
-
-  const sendWhatsAppMessage = async (usuario: Usuario) => {
-    if (!usuario.telefone) {
-      alert('Este usuário não possui telefone cadastrado.');
-      return;
-    }
-
-    const message = `Olá ${usuario.nome}! Esta é uma mensagem do Colégio Objetivo.`;
-    
-    try {
-      // Formatar número para Z-API (apenas números)
-      const cleanNumber = usuario.telefone.replace(/\D/g, '');
-      
-      const response = await fetch('https://api.z-api.io/instances/3E77C41E18874016EF0E2676AA920B85/token/485FD874492F6CFAAC3069AD/send-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: cleanNumber,
-          message: message
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && !data.error) {
-        alert(`✅ Mensagem enviada com sucesso para ${usuario.nome}!`);
-      } else {
-        alert(`❌ Erro ao enviar mensagem: ${data.message || data.error || 'Erro desconhecido'}`);
-      }
-    } catch (error) {
-      console.error('Erro ao enviar WhatsApp:', error);
-      alert('❌ Erro ao enviar mensagem via WhatsApp');
-    }
+  // Helper: montar link para abrir WhatsApp com mensagem
+  const buildWhatsappLink = (phone?: string, message?: string) => {
+    if (!phone) return '';
+    const digits = String(phone).replace(/\D/g, '');
+    const withCC = digits.startsWith('55') ? digits : `55${digits}`;
+    const text = message ? `?text=${encodeURIComponent(message)}` : '';
+    return `https://wa.me/${withCC}${text}`;
   };
   const usuariosFiltrados = usuarios.filter(usuario => {
     const matchBusca = !filtros.busca || 
@@ -402,16 +379,16 @@ export function UsuariosPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
                         {usuario.telefone && (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              sendWhatsAppMessage(usuario);
-                            }}
+                          <a
+                            href={buildWhatsappLink(usuario.telefone, `Olá ${usuario.nome}!`) }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
-                            title="Enviar WhatsApp"
+                            title="Abrir WhatsApp"
                           >
                             <MessageCircle className="h-4 w-4" />
-                          </button>
+                          </a>
                         )}
                         <button 
                           onClick={(e) => {
@@ -435,9 +412,11 @@ export function UsuariosPage() {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log('Ver detalhes do usuário:', usuario.nome);
+                            setUserForDetails(usuario);
+                            setShowUserDetailModal(true);
                           }}
                           className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-50"
+                          title="Ver detalhes"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
@@ -474,6 +453,16 @@ export function UsuariosPage() {
         onClose={handleResetPasswordClose}
         user={userForPasswordReset}
         onSave={handleResetPasswordSave}
+      />
+
+      {/* Modal de detalhes do usuário */}
+      <UserDetailModal
+        isOpen={showUserDetailModal}
+        onClose={() => {
+          setShowUserDetailModal(false);
+          setUserForDetails(null);
+        }}
+        user={userForDetails}
       />
     </div>
   );

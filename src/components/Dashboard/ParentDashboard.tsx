@@ -1,20 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BookOpen, Calendar, MessageSquare, FileText, Star, TrendingUp, AlertTriangle } from 'lucide-react';
 import { ItemDetailModal } from '../Modals/ItemDetailModal';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
 import { registrarVisualizacao } from '../../lib/supabase';
-import { pageTitles } from '../../App';
+// Import centralizado dos títulos das páginas para evitar dependência circular com App
+import { pageTitles } from '../../utils/pageTitles';
 import { SidebarManager } from '../Layout/SidebarManager';
 import { Header } from '../Layout/Header';
-import { NotasPage } from '../Pages/NotasPage';
-import { AgendaPage } from '../Pages/AgendaPage';
-import { MateriaisPage } from '../Pages/MateriaisPage';
-import { RecadosPage } from '../Pages/RecadosPage';
-import { PerfilPage } from '../Pages/PerfilPage';
-import { NotificacoesPage } from '../Pages/NotificacoesPage';
+import { getMediaGradientClasses, formatarNota } from '../../lib/gradeConfig';
+// Lazy loaded pages to reduce initial bundle size
+const NotasPage = lazy(() => import('../Pages/NotasPage').then(m => ({ default: m.NotasPage })));
+const AgendaPage = lazy(() => import('../Pages/AgendaPage').then(m => ({ default: m.AgendaPage })));
+const MateriaisPage = lazy(() => import('../Pages/MateriaisPage').then(m => ({ default: m.MateriaisPage })));
+const RecadosPage = lazy(() => import('../Pages/RecadosPage').then(m => ({ default: m.RecadosPage })));
+const PerfilPage = lazy(() => import('../Pages/PerfilPage').then(m => ({ default: m.PerfilPage })));
+const NotificacoesPage = lazy(() => import('../Pages/NotificacoesPage').then(m => ({ default: m.NotificacoesPage })));
 import { StudentProfileModal } from '../Modals/StudentProfileModal'; // Força re-resolução
-import type { Aluno, Nota, ProvaTarefa, Recado, Turma } from '../../lib/supabase';
+import type { Aluno, Nota, ProvaTarefa, Recado, Turma } from '../../lib/supabase.types';
 
 interface ParentDashboardProps {
   onNavigate?: (page: string) => void;
@@ -91,6 +94,18 @@ export function ParentDashboard({ onNavigate, currentPage = 'dashboard' }: Paren
         dataService.getDisciplinas() // Fetch all disciplines
       ]);
 
+      console.log('🏠 [ParentDashboard] Dados carregados:', {
+        alunos: alunosData.length,
+        turmas: turmasData.length,
+        notas: notasData.length,
+        provasTarefas: provasTarefasData.length,
+        recados: recadosData.length,
+        disciplinas: disciplinasData.length
+      });
+      
+      console.log('🏠 [ParentDashboard] Primeiro aluno:', alunosData[0]);
+      console.log('🏠 [ParentDashboard] Primeira nota:', notasData[0]);
+
       setAlunos(alunosData);
       setAllTurmas(turmasData); // Set all turmas
       setAllNotas(notasData); // Set all notas
@@ -161,12 +176,14 @@ export function ParentDashboard({ onNavigate, currentPage = 'dashboard' }: Paren
           
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 sm:p-6">
             <div className="max-w-7xl mx-auto mobile-container">
-              {currentPage === 'notas' && <NotasPage />}
-              {currentPage === 'agenda' && <AgendaPage />}
-              {currentPage === 'materiais' && <MateriaisPage />}
-              {currentPage === 'recados' && <RecadosPage />}
-              {currentPage === 'notificacoes' && <NotificacoesPage />}
-              {currentPage === 'perfil' && <PerfilPage />}
+              <Suspense fallback={<div className="py-10 text-center text-gray-500 font-medium">Carregando página...</div>}>
+                {currentPage === 'notas' && <NotasPage />}
+                {currentPage === 'agenda' && <AgendaPage />}
+                {currentPage === 'materiais' && <MateriaisPage />}
+                {currentPage === 'recados' && <RecadosPage />}
+                {currentPage === 'notificacoes' && <NotificacoesPage />}
+                {currentPage === 'perfil' && <PerfilPage />}
+              </Suspense>
             </div>
           </main>
         </div>
@@ -254,12 +271,8 @@ export function ParentDashboard({ onNavigate, currentPage = 'dashboard' }: Paren
                         </div>
                         <div className="flex items-center justify-between pt-4 sm:pt-6 border-t-2 border-blue-300">
                           <span className="text-sm sm:text-base font-black text-gray-800 whitespace-nowrap">📊 Média Geral:</span>
-                          <div className={`px-4 sm:px-6 py-3 sm:py-4 rounded-2xl sm:rounded-3xl font-black text-lg sm:text-xl lg:text-2xl shadow-modern animate-glow ${
-                            dataService.calcularMediaAluno(aluno.id, allNotas) >= 7 ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
-                            dataService.calcularMediaAluno(aluno.id, allNotas) >= 5 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white' :
-                            'bg-gradient-to-r from-red-400 to-red-600 text-white'
-                          }`}>
-                            {dataService.calcularMediaAluno(aluno.id, allNotas).toFixed(1)}
+                          <div className={`px-4 sm:px-6 py-3 sm:py-4 rounded-2xl sm:rounded-3xl font-black text-lg sm:text-xl lg:text-2xl shadow-modern animate-glow ${getMediaGradientClasses(dataService.calcularMediaAluno(aluno.id, allNotas))}`}>
+                            {formatarNota(dataService.calcularMediaAluno(aluno.id, allNotas))}
                           </div>
                         </div>
                       </div>
@@ -441,7 +454,7 @@ export function ParentDashboard({ onNavigate, currentPage = 'dashboard' }: Paren
                 <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl sm:rounded-2xl hover-lift">
                   <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-purple-600 mb-2 sm:mb-3 animate-glow">
                     {alunos.length > 0
-                      ? (alunos.reduce((acc, aluno) => acc + dataService.calcularMediaAluno(aluno.id, allNotas), 0) / alunos.length).toFixed(1)
+                      ? formatarNota(alunos.reduce((acc, aluno) => acc + dataService.calcularMediaAluno(aluno.id, allNotas), 0) / alunos.length)
                       : '0.0'
                     }
                   </div>
@@ -515,7 +528,7 @@ export function ParentDashboard({ onNavigate, currentPage = 'dashboard' }: Paren
           allNotas={allNotas}
           allProvasTarefas={allProvasTarefas}
           allRecados={allRecados}
-          allTurmas={allTurmas}
+          _allTurmas={allTurmas}
           allDisciplinas={allDisciplinas}
         />
       )}

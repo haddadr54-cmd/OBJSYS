@@ -8,7 +8,8 @@ import {
   MessageSquare, 
   Bell, 
   User, 
-  ClipboardList, 
+  ClipboardList,
+  AlertTriangle, 
   FileText, 
   Settings, 
   School, 
@@ -28,8 +29,8 @@ import { TabsSidebar } from './SidebarLayouts/TabsSidebar';
 import { CardsSidebar } from './SidebarLayouts/CardsSidebar';
 import { MinimalSidebar } from './SidebarLayouts/MinimalSidebar';
 import { ModernSidebar } from './SidebarLayouts/ModernSidebar';
-import { useAuth } from '../../contexts/AuthContext';
-import { useGlobalConfig } from '../../utils/configManager.tsx';
+import { useAuth } from '../../contexts/auth';
+import { useGlobalConfig } from '../../contexts/globalConfig';
 
 // Configuração padrão completa do sidebar
 const defaultSidebarConfig = {
@@ -76,7 +77,7 @@ interface SidebarManagerProps {
 
 // Menu items baseado no tipo de usuário
 type MenuKey = 'pai' | 'professor' | 'admin';
-const getMenuItems = (userType: MenuKey) => {
+const getMenuItems = (userType: MenuKey, featureFlags?: { parents_show_recovery?: boolean }) => {
   const menuItems: Record<MenuKey, any[]> = {
     pai: [
       { 
@@ -167,6 +168,12 @@ const getMenuItems = (userType: MenuKey) => {
             icon: BookOpen,
             description: 'Sistema rápido de notas',
             isPopular: true
+          },
+          { 
+            id: 'recuperacao', 
+            label: 'Gestão de Recuperação', 
+            icon: AlertTriangle,
+            description: 'Alunos em recuperação'
           },
           { 
             id: 'agenda', 
@@ -265,6 +272,12 @@ const getMenuItems = (userType: MenuKey) => {
             description: 'Supervisionar avaliações'
           },
           { 
+            id: 'recuperacao', 
+            label: 'Sistema de Recuperação', 
+            icon: AlertTriangle,
+            description: 'Gerenciar recuperação acadêmica'
+          },
+          { 
             id: 'presenca', 
             label: 'Controle de Presença', 
             icon: ClipboardList,
@@ -336,7 +349,7 @@ const getMenuItems = (userType: MenuKey) => {
             description: 'Informações institucionais'
           },
           { 
-            id: 'personalizacao-visual', 
+            id: 'configuracoes-aparencia', 
             label: 'Aparência', 
             icon: Palette,
             description: 'Cores e visual'
@@ -389,15 +402,40 @@ const getMenuItems = (userType: MenuKey) => {
       }
     ],
   };
-
+  // Inserir item de Recuperação para pais via feature flag (off por padrão)
+  if (userType === 'pai' && featureFlags?.parents_show_recovery) {
+    const parentMenu = menuItems.pai;
+    // Evitar duplicidade se já existir
+    if (!parentMenu.find(i => i.id === 'recuperacao')) {
+      parentMenu.splice(2, 0, {
+        id: 'recuperacao',
+        label: 'Gestão de Recuperação',
+        icon: AlertTriangle,
+        description: 'Alunos em recuperação e notas de recuperação'
+      });
+    }
+  }
   return menuItems[userType] || [];
 };
 
 export function SidebarManager({ currentPage, onPageChange, isOpen, onToggle, mockUser }: SidebarManagerProps) {
   const { user } = useAuth();
   const { configs } = useGlobalConfig();
-  const [currentLayout, setCurrentLayout] = React.useState('default');
-  const [sidebarConfig, setSidebarConfig] = React.useState<any>(defaultSidebarConfig);
+  // Inicializa layout/config do localStorage para evitar flash visual
+  const [currentLayout, setCurrentLayout] = React.useState(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_customization');
+      if (saved) return (JSON.parse(saved).layout || 'default');
+    } catch {}
+    return 'default';
+  });
+  const [sidebarConfig, setSidebarConfig] = React.useState<any>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_customization');
+      if (saved) return { ...defaultSidebarConfig, ...JSON.parse(saved) };
+    } catch {}
+    return defaultSidebarConfig;
+  });
 
   // Usar mockUser se fornecido (modo preview), senão usar user real
   const activeUser = mockUser || user;
@@ -414,10 +452,10 @@ export function SidebarManager({ currentPage, onPageChange, isOpen, onToggle, mo
     
       setCurrentLayout(layoutFromConfig);
       setSidebarConfig({ ...defaultSidebarConfig, ...configs.sidebar_customization });
+      try { localStorage.setItem('sidebar_customization', JSON.stringify(configs.sidebar_customization)); } catch {}
     } else {
       console.log('📂 Usando configurações padrão (Supabase não disponível ou sem dados)');
-      setCurrentLayout('default');
-      setSidebarConfig(defaultSidebarConfig);
+      // Mantém o que veio do localStorage (se houver) para evitar flash
     }
     
     // Escutar mudanças de configuração via eventos
@@ -598,7 +636,7 @@ export function SidebarManager({ currentPage, onPageChange, isOpen, onToggle, mo
 
   if (!activeUser) return null;
 
-  const menuItems = getMenuItems((activeUser.tipo_usuario as MenuKey) || 'pai');
+  const menuItems = getMenuItems((activeUser.tipo_usuario as MenuKey) || 'pai', { parents_show_recovery: configs.parents_show_recovery });
   const commonProps = {
     currentPage,
     onPageChange,

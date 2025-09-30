@@ -1,19 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  Home, 
-  Users, 
-  GraduationCap,
-  BookOpen,
-  Settings,
   LogOut,
   X,
-  Bell,
-  Search,
   ChevronDown,
   ChevronRight,
   Dot
 } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/auth';
 
 interface MinimalSidebarProps {
   currentPage: string;

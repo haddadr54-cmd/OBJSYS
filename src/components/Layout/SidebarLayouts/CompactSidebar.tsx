@@ -1,20 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  Home, 
-  Users, 
-  GraduationCap,
-  BookOpen,
-  Settings,
   LogOut,
   X,
   ChevronDown,
   ChevronRight,
-  Bell,
-  Search,
-  Star,
-  Bookmark
+  Search
 } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/auth';
 
 interface CompactSidebarProps {
   currentPage: string;

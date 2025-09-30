@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { ClipboardList, Calendar, Users, Check, X, Save, Filter, BookOpen, Clock, UserCheck, UserX, Zap } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { ClipboardList, Calendar, Users, Check, X, Save, Filter, BookOpen, UserCheck, UserX, Zap } from 'lucide-react';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
-import type { Turma, Aluno } from '../../lib/supabase';
+import type { Turma, Aluno } from '../../lib/supabase.types';
 
 interface PresencaAluno {
   alunoId: string;
@@ -33,10 +33,10 @@ export function PresencaPage() {
   }, [user, isSupabaseConnected]);
 
   useEffect(() => {
-    if (turmaSelected) {
+    if (turmaSelected && dataService && user) {
       fetchDisciplinas();
     }
-  }, [turmaSelected, alunos]);
+  }, [turmaSelected, dataService, user]);
 
   useEffect(() => {
     if (turmaSelected && disciplinaSelected && dataSelected) {
@@ -45,19 +45,44 @@ export function PresencaPage() {
   }, [turmaSelected, disciplinaSelected, dataSelected]);
 
   const fetchDisciplinas = async () => {
+    if (!dataService || !turmaSelected || !user) return;
+    
     try {
-      const { getAllDisciplinas } = await import('../../lib/supabase');
-      const todasDisciplinas = await getAllDisciplinas();
-      const disciplinasDaTurma = todasDisciplinas.filter(d => 
-        d.turma_id === turmaSelected && d.professor_id === user!.id
-      );
+      console.log('🔍 [PresencaPage] Carregando disciplinas para turma:', turmaSelected);
+      
+      const todasDisciplinas = await dataService.getDisciplinas();
+      console.log('🔍 [PresencaPage] Total disciplinas:', todasDisciplinas?.length || 0);
+      
+      if (!todasDisciplinas) {
+        console.warn('⚠️ [PresencaPage] Nenhuma disciplina retornada pelo dataService');
+        setDisciplinas([]);
+        return;
+      }
+      
+      // Filtrar disciplinas da turma selecionada
+      const disciplinasDaTurma = todasDisciplinas.filter(d => {
+        console.log('🔍 [PresencaPage] Verificando disciplina:', {
+          nome: d.nome,
+          turma_id: d.turma_id,
+          professor_id: d.professor_id,
+          turmaSelected,
+          userId: user.id
+        });
+        
+        return d.turma_id === turmaSelected;
+      });
+      
+      console.log('🔍 [PresencaPage] Disciplinas da turma encontradas:', disciplinasDaTurma.length);
       setDisciplinas(disciplinasDaTurma);
       
+      // Se só há uma disciplina, selecionar automaticamente
       if (disciplinasDaTurma.length === 1) {
         setDisciplinaSelected(disciplinasDaTurma[0].id);
+        console.log('🔍 [PresencaPage] Auto-selecionada disciplina:', disciplinasDaTurma[0].nome);
       }
     } catch (error) {
-      console.error('Erro ao carregar disciplinas:', error);
+      console.error('❌ [PresencaPage] Erro ao carregar disciplinas:', error);
+      setDisciplinas([]);
     }
   };
 
@@ -83,14 +108,25 @@ export function PresencaPage() {
 
   const loadPresencasExistentes = async () => {
     try {
-      const { getPresencasByTurmaData } = await import('../../lib/supabase');
-      const presencasData = await getPresencasByTurmaData(turmaSelected, dataSelected, disciplinaSelected);
+      console.log('🔄 [PresencaPage] Carregando presenças existentes...', {
+        turmaSelected,
+        dataSelected,
+        disciplinaSelected
+      });
+
+      const presencasData = await dataService.getPresencasByTurmaData(turmaSelected, dataSelected, disciplinaSelected);
+      
+      console.log('✅ [PresencaPage] Presenças carregadas:', {
+        quantidade: presencasData.length,
+        presencas: presencasData
+      });
+      
       setPresencasExistentes(presencasData);
       
       // Inicializar presenças com dados existentes ou padrão
       initializePresencas(presencasData);
     } catch (error) {
-      console.error('Erro ao carregar presenças existentes:', error);
+      console.error('❌ [PresencaPage] Erro ao carregar presenças existentes:', error);
       initializePresencas([]);
     }
   };
@@ -120,11 +156,7 @@ export function PresencaPage() {
     ));
   };
 
-  const updateJustificativa = (alunoId: string, justificativa: string) => {
-    setPresencas(prev => prev.map(p => 
-      p.alunoId === alunoId ? { ...p, justificativa } : p
-    ));
-  };
+  // Removida função updateJustificativa não utilizada (campo de justificativa não implementado na UI atual)
 
   const salvarPresencas = async () => {
     if (!disciplinaSelected) {
@@ -134,23 +166,27 @@ export function PresencaPage() {
 
     setSaving(true);
     try {
-      const { createPresenca, getPresencasByTurmaData, updatePresenca } = await import('../../lib/supabase');
-      
+      console.log('💾 [PresencaPage] Iniciando salvamento de presenças...', {
+        totalPresencas: presencas.length,
+        disciplinaSelected,
+        dataSelected
+      });
+
+      // Limitar concorrência para evitar pico de requisições (ex: 5 em paralelo)
+      const concurrency = 5;
+      let idx = 0;
       let sucessos = 0;
       let erros = 0;
-      
-      for (const presencaData of presencas) {
+
+      const tarefas = presencas.map(presencaData => async () => {
         const presencaExistente = presencasExistentes.find(p => p.aluno_id === presencaData.alunoId);
-        
         try {
           if (presencaExistente) {
-            // Atualizar presença existente
-            await updatePresenca(presencaExistente.id, {
-              presente: presencaData.presente
-            });
+            console.log(`🔄 [PresencaPage] Atualizando presença existente - Aluno: ${presencaData.alunoId}`);
+            await dataService.updatePresenca(presencaExistente.id, { presente: presencaData.presente });
           } else {
-            // Criar nova presença
-            await createPresenca({
+            console.log(`➕ [PresencaPage] Criando nova presença - Aluno: ${presencaData.alunoId}`);
+            await dataService.createPresenca({
               aluno_id: presencaData.alunoId,
               data_aula: dataSelected,
               presente: presencaData.presente,
@@ -158,19 +194,32 @@ export function PresencaPage() {
             });
           }
           sucessos++;
-        } catch (error) {
-          console.error(`Erro ao salvar presença do aluno ${presencaData.alunoId}:`, error);
+        } catch (e) {
+          console.error(`❌ [PresencaPage] Erro ao salvar presença do aluno ${presencaData.alunoId}:`, e);
           erros++;
         }
-      }
-      
+      });
+
+      // Executor de fila com limite
+      const runBatch = async () => {
+        while (idx < tarefas.length) {
+          const slice = tarefas.slice(idx, idx + concurrency).map(fn => fn());
+          idx += concurrency;
+          await Promise.all(slice);
+        }
+      };
+      await runBatch();
+
+      console.log('📊 [PresencaPage] Salvamento concluído:', { sucessos, erros });
+
       if (erros === 0) {
         alert(`✅ Todas as presenças foram salvas com sucesso! (${sucessos} registros)`);
+      } else if (sucessos === 0) {
+        alert('❌ Falha ao salvar todas as presenças. Verifique a conexão.');
       } else {
-        alert(`⚠️ Presenças salvas com alguns erros: ${sucessos} sucessos, ${erros} erros`);
+        alert(`⚠️ Presenças salvas parcialmente: ${sucessos} sucessos, ${erros} erros`);
       }
-      
-      // Recarregar presenças existentes
+
       await loadPresencasExistentes();
     } catch (error) {
       console.error('Erro ao salvar presenças:', error);

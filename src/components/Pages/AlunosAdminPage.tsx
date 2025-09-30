@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { GraduationCap, Plus, Edit, Trash2, Search, Filter, Eye, UserCheck, UserX, MessageCircle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { GraduationCap, Plus, Edit, Trash2, Search, Filter, Eye, UserCheck, MessageCircle } from 'lucide-react';
+import { useAuth } from '../../contexts/auth';
 import { useDataService } from '../../lib/dataService';
-import type { Aluno, Turma, Usuario } from '../../lib/supabase';
+import type { Aluno, Turma, Usuario } from '../../lib/supabase.types';
 import { StudentModal } from '../Modals/StudentModal';
+import { StudentDetailModal } from '../Modals/StudentDetailModal';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 
 export function AlunosAdminPage() {
@@ -19,6 +20,7 @@ export function AlunosAdminPage() {
     status: ''
   });
   const [showModal, setShowModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Aluno | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,42 +47,13 @@ export function AlunosAdminPage() {
       setLoading(false);
     }
   };
-
-  const sendWhatsAppToResponsavel = async (aluno: Aluno) => {
-    const alunoComDetalhes = getAlunoWithDetails(aluno);
-    const responsavel = alunoComDetalhes.responsavel;
-    
-    if (!responsavel?.telefone) {
-      alert('O responsável deste aluno não possui telefone cadastrado.');
-      return;
-    }
-
-    const message = `Olá ${responsavel.nome}! Esta é uma mensagem do Colégio Objetivo sobre seu filho(a) ${aluno.nome}.`;
-    
-    try {
-      // Formatar número para Z-API (apenas números)
-      const cleanNumber = responsavel.telefone.replace(/\D/g, '');
-      
-      const response = await fetch('https://api.z-api.io/instances/3E77C41E18874016EF0E2676AA920B85/token/485FD874492F6CFAAC3069AD/send-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: cleanNumber,
-          message: message
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && !data.error) {
-        alert(`✅ Mensagem enviada com sucesso para ${responsavel.nome} (responsável por ${aluno.nome})!`);
-      } else {
-        alert(`❌ Erro ao enviar mensagem: ${data.message || data.error || 'Erro desconhecido'}`);
-      }
-    } catch (error) {
-      console.error('Erro ao enviar WhatsApp:', error);
-      alert('❌ Erro ao enviar mensagem via WhatsApp');
-    }
+  // Helper: montar link para abrir WhatsApp com mensagem
+  const buildWhatsappLink = (phone?: string, message?: string) => {
+    if (!phone) return '';
+    const digits = String(phone).replace(/\D/g, '');
+    const withCC = digits.startsWith('55') ? digits : `55${digits}`;
+    const text = message ? `?text=${encodeURIComponent(message)}` : '';
+    return `https://wa.me/${withCC}${text}`;
   };
   const getAlunoWithDetails = (aluno: Aluno) => {
     const turma = turmas.find(t => t.id === aluno.turma_id);
@@ -314,16 +287,19 @@ export function AlunosAdminPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           {(alunoComDetalhes.responsavel?.telefone || (aluno as any).telefone_responsavel) && (
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                sendWhatsAppToResponsavel(aluno);
-                              }}
+                            <a
+                              href={buildWhatsappLink(
+                                alunoComDetalhes.responsavel?.telefone || (aluno as any).telefone_responsavel,
+                                `Olá ${alunoComDetalhes.responsavel?.nome || ''}! Sobre o aluno ${aluno.nome}.`
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
                               className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
-                              title="Enviar WhatsApp para responsável"
+                              title="Abrir WhatsApp do responsável"
                             >
                               <MessageCircle className="h-4 w-4" />
-                            </button>
+                            </a>
                           )}
                           <button 
                             onClick={(e) => {
@@ -337,9 +313,11 @@ export function AlunosAdminPage() {
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              console.log('Ver detalhes do aluno:', aluno.nome);
+                              setSelectedStudent(aluno);
+                              setShowDetailModal(true);
                             }}
                             className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-50"
+                            title="Ver detalhes do aluno"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
@@ -370,6 +348,18 @@ export function AlunosAdminPage() {
         onClose={handleModalClose}
         student={selectedStudent}
         onSave={handleModalSave}
+      />
+
+      {/* Modal de detalhes do aluno */}
+      <StudentDetailModal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedStudent(null);
+        }}
+        student={selectedStudent}
+        turma={selectedStudent ? turmas.find(t => t.id === selectedStudent.turma_id) : undefined}
+        responsavel={selectedStudent ? responsaveis.find(r => r.id === selectedStudent.responsavel_id) : undefined}
       />
     </div>
   );

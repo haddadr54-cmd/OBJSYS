@@ -1,6 +1,6 @@
-// Offline DB direct import (supabase dynamic imported when online)
+// Offline DB direct imports (localDatabase.ts) vs online Supabase (supabase.ts, both are 
 import { localDB } from './localDatabase';
-import type { Usuario, Aluno, Turma, Disciplina, Nota, ProvaTarefa, Material, Recado, Presenca } from './supabase';
+import type { Usuario, Aluno, Turma, Disciplina, Nota, ProvaTarefa, Material, Recado, Presenca, PeriodoLetivo, DecisaoFinal } from './supabase.types';
 import { getPermissionsForRole } from './permissions';
 import { 
   mapOfflineNotaToOnline,
@@ -15,6 +15,17 @@ type LegacyPermission = ReturnType<typeof getPermissionsForRole>;
 type UserPermissions = LegacyPermission;
 
 // Classe principal para gerenciamento centralizado de dados
+// Cache simples para evitar múltiplos dynamic imports simultâneos do mesmo módulo
+let supabaseModulePromise: Promise<typeof import('./supabase')> | null = null;
+function loadSupabaseModule() {
+  if (!supabaseModulePromise) {
+    supabaseModulePromise = import('./supabase');
+  }
+  return supabaseModulePromise;
+}
+
+
+
 class DataService {
   private user: Usuario | null = null;
   private permissions: UserPermissions; // migrating to centralized permissions
@@ -25,6 +36,19 @@ class DataService {
     this.isSupabaseConnected = isSupabaseConnected;
   // Prefer centralized permissions module; fallback to legacy
   this.permissions = user ? (getPermissionsForRole(user.tipo_usuario) as any) : (getPermissionsForRole('') as any);
+  }
+
+  // Função auxiliar para converter dados do localDB para formato Supabase
+  private convertLocalAlunosToSupabaseFormat(localAlunos: any[]): Aluno[] {
+    return localAlunos.map(aluno => ({
+      ...aluno,
+      responsavel: aluno.responsavel ? {
+        id: aluno.responsavel_id,
+        nome: aluno.responsavel,
+        telefone: aluno.telefone_responsavel,
+        email: aluno.email_responsavel
+      } : null
+    }));
   }
 
   // Método para verificar permissões
@@ -44,7 +68,7 @@ class DataService {
     }
 
     if (this.isSupabaseConnected) {
-      const { getAllUsuarios } = await import('./supabase');
+  const { getAllUsuarios } = await loadSupabaseModule();
       return await getAllUsuarios();
     } else {
       return localDB.getUsuarios();
@@ -60,7 +84,7 @@ class DataService {
       throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { createUsuario } = await import('./supabase');
+  const { createUsuario } = await loadSupabaseModule();
     return await createUsuario(userData);
   }
 
@@ -73,7 +97,7 @@ class DataService {
       throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { updateUsuario } = await import('./supabase');
+  const { updateUsuario } = await loadSupabaseModule();
     return await updateUsuario(id, updates);
   }
 
@@ -86,7 +110,7 @@ class DataService {
       throw new Error('Operação de exclusão requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { deleteUsuario } = await import('./supabase');
+  const { deleteUsuario } = await loadSupabaseModule();
     return await deleteUsuario(id);
   }
 
@@ -95,7 +119,7 @@ class DataService {
     if (!this.user) return [];
 
     if (this.isSupabaseConnected) {
-      const { getAllAlunos, getAlunosByResponsavel, getTurmasByProfessor } = await import('./supabase');
+  const { getAllAlunos, getAlunosByResponsavel, getTurmasByProfessor } = await loadSupabaseModule();
       
       if (this.permissions.canViewAllStudents) {
         // Admin vê todos os alunos
@@ -112,15 +136,20 @@ class DataService {
       }
     } else {
       const { localDB } = await import('./localDatabase');
+      let localAlunos: any[] = [];
+      
       if (this.permissions.canViewAllStudents) {
-        return localDB.getAlunos();
+        localAlunos = localDB.getAlunos();
       } else if (this.user.tipo_usuario === 'professor') {
         const turmas = localDB.getTurmasByProfessor(this.user.id);
         const turmaIds = turmas.map(t => t.id);
-        return localDB.getAlunos().filter(a => turmaIds.includes(a.turma_id));
+        localAlunos = localDB.getAlunos().filter(a => turmaIds.includes(a.turma_id));
       } else if (this.user.tipo_usuario === 'pai') {
-        return localDB.getAlunosByResponsavel(this.user.id);
+        localAlunos = localDB.getAlunosByResponsavel(this.user.id);
       }
+
+      // Converter formato local para formato Supabase
+      return this.convertLocalAlunosToSupabaseFormat(localAlunos);
     }
 
     return [];
@@ -135,7 +164,7 @@ class DataService {
       throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { createAluno } = await import('./supabase');
+  const { createAluno } = await loadSupabaseModule();
     return await createAluno(alunoData);
   }
 
@@ -148,7 +177,7 @@ class DataService {
       throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { updateAluno } = await import('./supabase');
+  const { updateAluno } = await loadSupabaseModule();
     return await updateAluno(id, updates);
   }
 
@@ -161,7 +190,7 @@ class DataService {
       throw new Error('Operação de exclusão requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { deleteAluno } = await import('./supabase');
+  const { deleteAluno } = await loadSupabaseModule();
     return await deleteAluno(id);
   }
 
@@ -170,7 +199,7 @@ class DataService {
     if (!this.user) return [];
 
     if (this.isSupabaseConnected) {
-      const { getAllTurmas, getTurmasByProfessor, getAlunosByResponsavel } = await import('./supabase');
+  const { getAllTurmas, getTurmasByProfessor, getAlunosByResponsavel } = await loadSupabaseModule();
       
       if (this.permissions.canViewAllClasses) {
         // Admin vê todas as turmas
@@ -210,7 +239,7 @@ class DataService {
       throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { createTurma } = await import('./supabase');
+  const { createTurma } = await loadSupabaseModule();
     // Remove professor_id as it doesn't exist in the Supabase schema
     const { professor_id, ...supabaseData } = turmaData as any;
     return await createTurma(supabaseData);
@@ -225,7 +254,7 @@ class DataService {
       throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { updateTurma } = await import('./supabase');
+  const { updateTurma } = await loadSupabaseModule();
     // Remove professor_id as it doesn't exist in the Supabase schema
     const { professor_id, ...supabaseUpdates } = updates as any;
     return await updateTurma(id, supabaseUpdates);
@@ -240,7 +269,7 @@ class DataService {
       throw new Error('Operação de exclusão requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { deleteTurma } = await import('./supabase');
+  const { deleteTurma } = await loadSupabaseModule();
     return await deleteTurma(id);
   }
 
@@ -249,7 +278,7 @@ class DataService {
     if (!this.user) return [];
 
     if (this.isSupabaseConnected) {
-      const { getAllDisciplinas, getAlunosByResponsavel } = await import('./supabase');
+  const { getAllDisciplinas, getAlunosByResponsavel } = await loadSupabaseModule();
       
       if (this.permissions.canViewAllSubjects) {
         // Admin vê todas as disciplinas
@@ -299,7 +328,7 @@ class DataService {
       throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { createDisciplina } = await import('./supabase');
+  const { createDisciplina } = await loadSupabaseModule();
     return await createDisciplina(disciplinaData);
   }
 
@@ -312,7 +341,7 @@ class DataService {
       throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { updateDisciplina } = await import('./supabase');
+  const { updateDisciplina } = await loadSupabaseModule();
     return await updateDisciplina(id, updates);
   }
 
@@ -325,7 +354,7 @@ class DataService {
       throw new Error('Operação de exclusão requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { deleteDisciplina } = await import('./supabase');
+  const { deleteDisciplina } = await loadSupabaseModule();
     return await deleteDisciplina(id);
   }
 
@@ -334,7 +363,7 @@ class DataService {
     if (!this.user) return [];
 
     if (this.isSupabaseConnected) {
-      const { getAllNotas, getNotasByProfessor, getAlunosByResponsavel, getNotasByAluno } = await import('./supabase');
+  const { getAllNotas, getNotasByProfessor, getAlunosByResponsavel, getNotasByAluno } = await loadSupabaseModule();
       
       if (this.permissions.canViewAllGrades) {
         // Admin vê todas as notas
@@ -359,7 +388,13 @@ class DataService {
       if (this.user.tipo_usuario === 'pai') {
         const alunos = localDB.getAlunosByResponsavel(this.user.id);
         const alunoIds = new Set(alunos.map(a => a.id));
-        return todas.filter(n => alunoIds.has(n.aluno_id));
+        console.log('👨‍👩‍👧‍👦 [DataService] Carregando notas para pai:', {
+          alunos: alunos.length,
+          totalNotas: todas.length
+        });
+        const notasFiltradas = todas.filter(n => alunoIds.has(n.aluno_id));
+        console.log('👨‍👩‍👧‍👦 [DataService] Notas encontradas:', notasFiltradas.length);
+        return notasFiltradas;
       }
     }
 
@@ -372,10 +407,24 @@ class DataService {
     }
 
     if (!this.isSupabaseConnected) {
-      throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
+      // Offline support: persist nota in localDB and map back to online shape
+      // Map Nota (online) -> localDatabase.Nota (offline)
+      const offlinePayload: any = {
+        aluno_id: notaData.aluno_id,
+        disciplina_id: notaData.disciplina_id,
+        professor_id: this.user?.id || 'offline-prof',
+        valor: notaData.nota,
+        tipo: (notaData as any).tipo || 'prova',
+        descricao: notaData.comentario || '',
+        data_lancamento: new Date().toISOString().slice(0, 10),
+        bimestre: typeof notaData.trimestre === 'number' ? notaData.trimestre : 0
+      };
+      const created = localDB.createNota(offlinePayload);
+      // Map offline -> online Nota
+      return mapOfflineNotaToOnline(created);
     }
 
-    const { createNota } = await import('./supabase');
+  const { createNota } = await loadSupabaseModule();
     return await createNota(notaData);
   }
 
@@ -401,7 +450,7 @@ class DataService {
     }
 
     if (this.isSupabaseConnected) {
-      const { editarNota } = await import('./supabase');
+  const { editarNota } = await loadSupabaseModule();
       return await editarNota(
         notaId,
         updates,
@@ -439,7 +488,7 @@ class DataService {
     }
 
     if (this.isSupabaseConnected) {
-      const { deleteNota } = await import('./supabase');
+  const { deleteNota } = await loadSupabaseModule();
       return await deleteNota(notaId, { id: this.user.id, tipo_usuario: this.user.tipo_usuario });
     } else {
       const offlineNotas: any[] = localDB.getNotas();
@@ -456,7 +505,7 @@ class DataService {
     if (!this.user) return [];
 
     if (this.isSupabaseConnected) {
-      const { getAllProvasTarefas, getAlunosByResponsavel } = await import('./supabase');
+  const { getAllProvasTarefas, getAlunosByResponsavel } = await loadSupabaseModule();
       
       const todasProvas = await getAllProvasTarefas();
       
@@ -497,7 +546,7 @@ class DataService {
       throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { createProvaTarefa } = await import('./supabase');
+  const { createProvaTarefa } = await loadSupabaseModule();
     return await createProvaTarefa(provaData);
   }
 
@@ -510,7 +559,7 @@ class DataService {
       throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { updateProvaTarefa } = await import('./supabase');
+  const { updateProvaTarefa } = await loadSupabaseModule();
     return await updateProvaTarefa(id, updates);
   }
 
@@ -523,7 +572,7 @@ class DataService {
       throw new Error('Operação de exclusão requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { deleteProvaTarefa } = await import('./supabase');
+  const { deleteProvaTarefa } = await loadSupabaseModule();
     return await deleteProvaTarefa(id);
   }
 
@@ -532,7 +581,7 @@ class DataService {
     if (!this.user) return [];
 
     if (this.isSupabaseConnected) {
-      const { getAllMateriais, getAlunosByResponsavel } = await import('./supabase');
+  const { getAllMateriais, getAlunosByResponsavel } = await loadSupabaseModule();
       
       const todosMateriais = await getAllMateriais();
       
@@ -572,7 +621,7 @@ class DataService {
       throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { createMaterial } = await import('./supabase');
+  const { createMaterial } = await loadSupabaseModule();
     return await createMaterial(materialData);
   }
 
@@ -585,7 +634,7 @@ class DataService {
       throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { updateMaterial } = await import('./supabase');
+  const { updateMaterial } = await loadSupabaseModule();
     return await updateMaterial(id, updates);
   }
 
@@ -598,7 +647,7 @@ class DataService {
       throw new Error('Operação de exclusão requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { deleteMaterial } = await import('./supabase');
+  const { deleteMaterial } = await loadSupabaseModule();
     return await deleteMaterial(id);
   }
 
@@ -607,7 +656,7 @@ class DataService {
     if (!this.user) return [];
 
     if (this.isSupabaseConnected) {
-      const { getRecadosForUser } = await import('./supabase');
+  const { getRecadosForUser } = await loadSupabaseModule();
       return await getRecadosForUser(this.user.id, this.user.tipo_usuario);
     } else {
       const { localDB } = await import('./localDatabase');
@@ -624,7 +673,7 @@ class DataService {
       throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { createRecado } = await import('./supabase');
+  const { createRecado } = await loadSupabaseModule();
     return await createRecado(recadoData);
   }
 
@@ -637,7 +686,7 @@ class DataService {
       throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { updateRecado } = await import('./supabase');
+  const { updateRecado } = await loadSupabaseModule();
     return await updateRecado(id, updates);
   }
 
@@ -646,7 +695,7 @@ class DataService {
       this.throwPermissionError('excluir recados');
     }
     if (this.isSupabaseConnected) {
-      const { deleteRecado } = await import('./supabase');
+  const { deleteRecado } = await loadSupabaseModule();
       return await deleteRecado(id);
     } else {
       const { localDB } = await import('./localDatabase');
@@ -659,7 +708,7 @@ class DataService {
       this.throwPermissionError('excluir recados');
     }
     if (this.isSupabaseConnected) {
-      const { bulkDeleteRecados } = await import('./supabase');
+  const { bulkDeleteRecados } = await loadSupabaseModule();
       return await bulkDeleteRecados(ids);
     } else {
       const { localDB } = await import('./localDatabase');
@@ -716,8 +765,45 @@ class DataService {
       throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
     }
 
-    const { createPresenca } = await import('./supabase');
+    const { createPresenca } = await loadSupabaseModule();
     return await createPresenca(presencaData);
+  }
+
+  async updatePresenca(id: string, updates: Partial<Presenca>): Promise<Presenca | null> {
+    if (!this.user || this.user.tipo_usuario === 'pai') {
+      this.throwPermissionError('atualizar presenças');
+    }
+
+    if (!this.isSupabaseConnected) {
+      throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
+    }
+
+    const { updatePresenca } = await loadSupabaseModule();
+    return await updatePresenca(id, updates);
+  }
+
+  async getPresencasByTurmaData(turmaId: string, data: string, disciplinaId: string): Promise<Presenca[]> {
+    if (!this.user) return [];
+
+    if (!this.checkPermission('canViewAllAttendance')) {
+      this.throwPermissionError('visualizar presenças');
+    }
+
+    if (this.isSupabaseConnected) {
+      const { getPresencasByTurmaData } = await loadSupabaseModule();
+      return await getPresencasByTurmaData(turmaId, data, disciplinaId);
+    } else {
+      // Fallback offline - buscar do localDB
+      const presencas = localDB.getPresencas();
+      const alunos = localDB.getAlunos();
+      
+      return presencas.filter(p => {
+        const aluno = alunos.find(a => a.id === p.aluno_id);
+        return aluno?.turma_id === turmaId && 
+               p.data_aula === data && 
+               p.disciplina_id === disciplinaId;
+      });
+    }
   }
 
   // ==================== MÉTODOS AUXILIARES ====================
@@ -801,6 +887,271 @@ class DataService {
     }
     if (notasAluno.length === 0) return 0;
     return notasAluno.reduce((acc, nota) => acc + (nota.nota || 0), 0) / notasAluno.length;
+  }
+
+  // ==================== DECISÃO FINAL DO ANO ====================
+
+  // Identificar alunos pendentes ao final do ano letivo (média final < média mínima)
+  async getAlunosPendentesAno(anoLetivo?: number): Promise<{ aluno: Aluno; mediaGeral: number }[]> {
+    const ano = anoLetivo ?? new Date().getFullYear();
+    const [alunos, notas] = await Promise.all([this.getAlunos(), this.getNotas()]);
+
+    // filtrar notas do ano
+    const notasAno = notas.filter(n => {
+      const d = new Date(n.criado_em || n.data_lancamento || new Date());
+      return d.getFullYear() === ano;
+    });
+
+    // calcular média por aluno (todas disciplinas)
+    const resultados: { aluno: Aluno; mediaGeral: number }[] = alunos.map(aluno => {
+      const media = this.calcularMediaAluno(aluno.id, notasAno as any);
+      return { aluno, mediaGeral: media };
+    });
+
+    // média mínima definida em gradeConfig
+    const { MEDIA_MINIMA_APROVACAO } = await import('./gradeConfig');
+    return resultados.filter(r => r.mediaGeral < MEDIA_MINIMA_APROVACAO);
+  }
+
+  // CRUD Decisão Final (requer Supabase)
+  async getDecisoesFinais(anoLetivo?: number): Promise<DecisaoFinal[]> {
+    if (!this.isSupabaseConnected) return [];
+    const { supabase } = await loadSupabaseModule();
+    let query = supabase.from('decisoes_finais').select('*');
+    if (anoLetivo) query = query.eq('ano_letivo', anoLetivo);
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) { console.error('Erro ao buscar decisões finais:', error); return []; }
+    return data || [];
+  }
+
+  async upsertDecisaoFinal(payload: Omit<DecisaoFinal, 'id'|'created_at'|'updated_at'> & { id?: string }): Promise<DecisaoFinal | null> {
+    if (!this.isSupabaseConnected) throw new Error('Operação requer conexão com Supabase.');
+    if (!this.user) throw new Error('Usuário não autenticado.');
+    const { supabase } = await loadSupabaseModule();
+    const row = {
+      ...payload,
+      decidido_por: payload.decidido_por ?? this.user.id,
+      decidido_em: payload.decidido_em ?? new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as any;
+    const { data, error } = await supabase
+      .from('decisoes_finais')
+      .upsert(row, { onConflict: 'id' })
+      .select()
+      .single();
+    if (error) { console.error('Erro upsert decisão final:', error); throw error; }
+    return data;
+  }
+
+  // Alertas para dashboards: alunos pendentes no ano corrente e sem decisão final
+  async getAlertasPendenciasFinais(anoLetivo?: number) {
+    const ano = anoLetivo ?? new Date().getFullYear();
+    const [pendentes, decisoes] = await Promise.all([
+      this.getAlunosPendentesAno(ano),
+      this.getDecisoesFinais(ano)
+    ]);
+    const comDecisao = new Set(decisoes.map(d => d.aluno_id));
+    const pendentesSemDecisao = pendentes.filter(p => !comDecisao.has(p.aluno.id));
+    return {
+      ano,
+      totalPendentes: pendentes.length,
+      totalSemDecisao: pendentesSemDecisao.length,
+      pendentesSemDecisao
+    };
+  }
+
+  // Criar registros 'pendente' para todos os alunos sem decisão no ano
+  async seedPendenciasFinais(anoLetivo?: number): Promise<{ created: number }> {
+    const ano = anoLetivo ?? new Date().getFullYear();
+    if (!this.isSupabaseConnected) {
+      // Sem supabase, apenas retorna contagem prevista
+      const alertas = await this.getAlertasPendenciasFinais(ano);
+      return { created: alertas.totalSemDecisao };
+    }
+    const alertas = await this.getAlertasPendenciasFinais(ano);
+    let created = 0;
+    for (const item of alertas.pendentesSemDecisao) {
+      await this.upsertDecisaoFinal({
+        aluno_id: item.aluno.id,
+        ano_letivo: ano,
+        status_final: 'pendente',
+        justificativa: null,
+        decidido_por: this.user?.id ?? null,
+        decidido_em: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        id: undefined as any
+      } as any);
+      created++;
+    }
+    return { created };
+  }
+
+  // ==================== MÉTODOS PARA PERÍODOS LETIVOS ====================
+
+  // Obter todos os períodos letivos
+  async getPeriodosLetivos(): Promise<PeriodoLetivo[]> {
+    if (!this.isSupabaseConnected) {
+      // Para desenvolvimento local, retorna dados mock
+      return [
+        {
+          id: '1',
+          nome: '1º Bimestre 2024',
+          tipo: 'bimestre',
+          data_inicio: '2024-02-01',
+          data_fim: '2024-04-15',
+          ano_letivo: 2024,
+          ativo: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: '2',
+          nome: '2º Bimestre 2024',
+          tipo: 'bimestre',
+          data_inicio: '2024-04-16',
+          data_fim: '2024-06-30',
+          ano_letivo: 2024,
+          ativo: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
+    }
+
+    // Com Supabase conectado
+    const { supabase } = await loadSupabaseModule();
+    const { data, error } = await supabase
+      .from('periodos_letivos')
+      .select('*')
+      .order('ano_letivo', { ascending: false })
+      .order('data_inicio', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar períodos letivos:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  // Criar novo período letivo
+  async createPeriodoLetivo(periodoData: Omit<PeriodoLetivo, 'id' | 'created_at' | 'updated_at'>): Promise<PeriodoLetivo | null> {
+    if (!this.permissions.canManageSystem) {
+      throw new Error('Sem permissão para criar períodos letivos');
+    }
+
+    if (!this.isSupabaseConnected) {
+      throw new Error('Operação de criação requer conexão com Supabase. Verifique sua conexão.');
+    }
+
+    const { supabase } = await loadSupabaseModule();
+    const { data, error } = await supabase
+      .from('periodos_letivos')
+      .insert([{
+        ...periodoData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar período letivo:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  // Atualizar período letivo existente
+  async updatePeriodoLetivo(id: string, periodoData: Partial<PeriodoLetivo>): Promise<PeriodoLetivo | null> {
+    if (!this.permissions.canManageSystem) {
+      throw new Error('Sem permissão para atualizar períodos letivos');
+    }
+
+    if (!this.isSupabaseConnected) {
+      throw new Error('Operação de atualização requer conexão com Supabase. Verifique sua conexão.');
+    }
+
+    const { supabase } = await loadSupabaseModule();
+    const { data, error } = await supabase
+      .from('periodos_letivos')
+      .update({
+        ...periodoData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar período letivo:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  // Excluir período letivo
+  async deletePeriodoLetivo(id: string): Promise<boolean> {
+    if (!this.permissions.canManageSystem) {
+      throw new Error('Sem permissão para excluir períodos letivos');
+    }
+
+    if (!this.isSupabaseConnected) {
+      throw new Error('Operação de exclusão requer conexão com Supabase. Verifique sua conexão.');
+    }
+
+    const { supabase } = await loadSupabaseModule();
+    const { error } = await supabase
+      .from('periodos_letivos')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao excluir período letivo:', error);
+      throw error;
+    }
+
+    return true;
+  }
+
+  // Ativar um período letivo específico (desativa os outros)
+  async ativarPeriodoLetivo(id: string): Promise<boolean> {
+    if (!this.permissions.canManageSystem) {
+      throw new Error('Sem permissão para ativar períodos letivos');
+    }
+
+    if (!this.isSupabaseConnected) {
+      throw new Error('Operação de ativação requer conexão com Supabase. Verifique sua conexão.');
+    }
+
+    const { supabase } = await loadSupabaseModule();
+    
+    // Primeiro desativa todos os períodos
+    await supabase
+      .from('periodos_letivos')
+      .update({ ativo: false, updated_at: new Date().toISOString() });
+
+    // Depois ativa apenas o período selecionado
+    const { error } = await supabase
+      .from('periodos_letivos')
+      .update({ ativo: true, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao ativar período letivo:', error);
+      throw error;
+    }
+
+    return true;
+  }
+
+  // Obter período letivo ativo atual
+  async getPeriodoLetivoAtivo(): Promise<PeriodoLetivo | null> {
+    const periodos = await this.getPeriodosLetivos();
+    return periodos.find(p => p.ativo) || null;
   }
 }
 

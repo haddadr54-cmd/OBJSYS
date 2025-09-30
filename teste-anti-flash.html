@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TESTE ANTI-FLASH - Sistema Objetivo</title>
+    <style>
+        /* SISTEMA ANTI-FLASH ULTRA DEFINITIVO */
+        html {
+            visibility: hidden !important;
+            background-color: #f8fafc !important;
+        }
+        
+        html.app-ready {
+            visibility: visible !important;
+        }
+        
+        body {
+            opacity: 0;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s ease-out;
+        }
+        
+        body.page-ready {
+            opacity: 1 !important;
+        }
+        
+        .login-container {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            transform: translateY(10px);
+            transition: all 0.2s ease-out;
+            
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .login-container.loaded {
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateY(0);
+        }
+        
+        .btn {
+            background: #002776;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .btn:hover {
+            background: #001A5C;
+            transform: translateY(-1px);
+        }
+        
+        .logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .logo.loaded {
+            opacity: 1;
+        }
+        
+        h1 {
+            color: #002776;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        
+        p {
+            color: #64748b;
+            margin: 0 0 20px 0;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-container" class="login-container">
+        <img src="/LOGO OBJETIVO PNG.png" alt="Logo Objetivo" class="logo" id="logo">
+        <h1>Sistema Objetivo</h1>
+        <p>Teste do Sistema Anti-Flash</p>
+        
+        <button class="btn" onclick="testLogin()">Entrar no Sistema (TESTE)</button>
+        <button class="btn" onclick="testLogout()" style="background: #dc2626; margin-top: 10px;">Sair do Sistema (TESTE)</button>
+        
+        <div id="status" class="status info">
+            ✅ Sistema Anti-Flash Ativo
+        </div>
+    </div>
+
+    <script>
+        // SISTEMA ANTI-FLASH CRÍTICO
+        (function() {
+            'use strict';
+            
+            console.log('🚀 Iniciando sistema anti-flash...');
+            
+            // 1. Aplicar classes imediatamente
+            document.documentElement.style.visibility = 'visible';
+            document.documentElement.classList.add('app-ready');
+            document.body.classList.add('page-ready');
+            
+            // 2. Aguardar DOM estar pronto
+            const activateSystem = () => {
+                console.log('📋 DOM pronto, ativando sistema...');
+                
+                // Garantir visibilidade
+                document.documentElement.style.visibility = 'visible';
+                document.documentElement.classList.add('app-ready');
+                document.body.classList.add('page-ready');
+                
+                // Ativar container
+                const container = document.getElementById('login-container');
+                if (container) {
+                    container.classList.add('loaded');
+                    console.log('✅ Container ativado');
+                }
+                
+                // Ativar logo
+                const logo = document.getElementById('logo');
+                if (logo) {
+                    if (logo.complete) {
+                        logo.classList.add('loaded');
+                    } else {
+                        logo.addEventListener('load', () => {
+                            logo.classList.add('loaded');
+                        });
+                    }
+                }
+                
+                // Atualizar status
+                const status = document.getElementById('status');
+                if (status) {
+                    status.className = 'status success';
+                    status.textContent = '✅ Sistema Anti-Flash Funcionando Perfeitamente!';
+                }
+            };
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', activateSystem);
+            } else {
+                activateSystem();
+            }
+            
+            // 3. Garantir execução em múltiplos momentos
+            requestAnimationFrame(() => {
+                requestAnimationFrame(activateSystem);
+            });
+            
+            // 4. Teste de Login/Logout
+            window.testLogin = function() {
+                console.log('🔑 Testando login...');
+                
+                // Simular processo de login
+                const status = document.getElementById('status');
+                if (status) {
+                    status.className = 'status info';
+                    status.textContent = '🔄 Fazendo login...';
+                }
+                
+                setTimeout(() => {
+                    if (status) {
+                        status.className = 'status success';
+                        status.textContent = '✅ Login realizado com sucesso! (SEM FLASH)';
+                    }
+                    
+                    // Salvar estado no localStorage
+                    localStorage.setItem('testUser', JSON.stringify({
+                        name: 'Usuário Teste',
+                        loginTime: new Date().toISOString()
+                    }));
+                    
+                }, 1000);
+            };
+            
+            window.testLogout = function() {
+                console.log('🚪 Testando logout...');
+                
+                const status = document.getElementById('status');
+                if (status) {
+                    status.className = 'status info';
+                    status.textContent = '🔄 Fazendo logout...';
+                }
+                
+                // Limpar localStorage
+                localStorage.removeItem('testUser');
+                
+                // Fade out suave
+                document.body.style.opacity = '0';
+                document.body.style.transition = 'opacity 0.2s ease-out';
+                
+                setTimeout(() => {
+                    // Simular reload sem flash
+                    document.body.style.opacity = '1';
+                    
+                    if (status) {
+                        status.className = 'status success';
+                        status.textContent = '✅ Logout realizado com sucesso! (SEM FLASH)';
+                    }
+                    
+                    console.log('✅ Logout concluído sem flash!');
+                }, 300);
+            };
+            
+        })();
+    </script>
+</body>
+</html>

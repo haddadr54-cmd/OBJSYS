@@ -19,6 +19,7 @@ export interface PermissionMatrixEntry {
   canCreateSubjects: boolean;
   canCreateGrades: boolean;
   canCreateMaterials: boolean;
+  canManageSystem: boolean;
   canCreateMessages: boolean;
   canEditUsers: boolean;
   canEditStudents: boolean;
@@ -53,7 +54,8 @@ const base: PermissionMatrixEntry = {
   canDeleteUsers: false,
   canDeleteStudents: false,
   canDeleteClasses: false,
-  canDeleteSubjects: false
+  canDeleteSubjects: false,
+  canManageSystem: false
 };
 
 const matrix: Record<UserRole, PermissionMatrixEntry> = {
@@ -81,6 +83,7 @@ const matrix: Record<UserRole, PermissionMatrixEntry> = {
     canEditSubjects: true,
     canDeleteUsers: true,
     canDeleteStudents: true,
+    canManageSystem: true,
     canDeleteClasses: true,
     canDeleteSubjects: true,
   },

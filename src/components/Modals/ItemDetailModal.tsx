@@ -1,7 +1,8 @@
 import React from 'react';
 import { X, Calendar, BookOpen, Users, Clock, FileText, Video, Link, User, MessageSquare, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import type { ProvaTarefa, Recado, Material, Nota } from '../../lib/supabase';
+import { useAuth } from '../../contexts/auth';
+import { getSituacaoAcademica } from '../../lib/gradeConfig';
+import type { ProvaTarefa, Recado, Material, Nota } from '../../lib/supabase.types';
 
 interface ItemDetailModalProps {
   isOpen: boolean;
@@ -97,7 +98,7 @@ export function ItemDetailModal({
         const prova = item as ProvaTarefa;
         return `${prova.tipo === 'prova' ? 'Prova' : 'Tarefa'}: ${prova.titulo}`;
       case 'recado':
-        return `Recado: ${item.titulo}`;
+        return `Recado: ${(item as Recado).titulo}`;
       case 'material':
         const material = item as Material;
         return `Material: ${material.titulo}`;
@@ -105,7 +106,7 @@ export function ItemDetailModal({
         const nota = item as Nota;
         return `Nota: ${nota.disciplina?.nome || 'Disciplina'} - ${nota.aluno?.nome || autorName}`;
       default:
-        return item.titulo;
+        return '';
     }
   };
 
@@ -131,9 +132,8 @@ export function ItemDetailModal({
       case 'nota':
         const nota = item as Nota;
         const notaValor = nota.nota || 0;
-        if (notaValor >= 7) return 'bg-green-50 border-green-200';
-        if (notaValor >= 5) return 'bg-yellow-50 border-yellow-200';
-        return 'bg-red-50 border-red-200';
+        const situacao = getSituacaoAcademica(notaValor);
+        return `${situacao.bgColor.replace('bg-', 'bg-').replace('-500', '-50')} ${situacao.borderColor.replace('border-', 'border-').replace('-500', '-200')}`;
       default:
         return 'bg-gray-50 border-gray-200';
     }
@@ -660,11 +660,14 @@ export function ItemDetailModal({
     const nota = item as Nota;
     const notaValor = nota.nota || 0;
     
-    // Determinar status da nota
+    // Determinar status da nota usando configuração centralizada
     const getStatusNota = () => {
-      if (notaValor >= 7) return { status: 'Aprovado', color: 'green', icon: '✅' };
-      if (notaValor >= 5) return { status: 'Recuperação', color: 'yellow', icon: '⚠️' };
-      return { status: 'Reprovado', color: 'red', icon: '❌' };
+      const situacao = getSituacaoAcademica(notaValor);
+      return {
+        status: situacao.status,
+        color: situacao.status === 'Aprovado' ? 'green' : situacao.status === 'Recuperação' ? 'yellow' : 'red',
+        icon: situacao.icon
+      };
     };
 
     const statusInfo = getStatusNota();

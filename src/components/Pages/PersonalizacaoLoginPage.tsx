@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Monitor, 
   Save, 
   RotateCcw, 
   Eye, 
-  EyeOff, 
   Palette, 
   Type, 
   Layout, 
@@ -14,7 +13,6 @@ import {
   AlertCircle, 
   ExternalLink,
   Upload,
-  X,
   Grid,
   Square,
   Circle,
@@ -22,10 +20,9 @@ import {
   Smartphone,
   Tablet,
   Camera,
-  Paintbrush,
   RefreshCw
 } from 'lucide-react';
-import { useGlobalConfig } from '../../utils/configManager.tsx';
+import { useGlobalConfig } from '../../contexts/globalConfig';
 
 interface LoginCustomization {
   // Logo e Branding
@@ -56,6 +53,15 @@ interface LoginCustomization {
   showSiteButton: boolean;
   siteButtonText: string;
   siteButtonUrl: string;
+  
+  // Configurações do Botão de Login
+  loginButtonText: string;
+  loginButtonColor: string;
+  loginButtonHoverColor: string;
+  loginButtonTextColor: string;
+  loginButtonSize: 'small' | 'medium' | 'large';
+  loginButtonStyle: 'solid' | 'outline' | 'gradient';
+  loginButtonRounded: boolean;
   
   // Rodapé
   showFooter: boolean;
@@ -133,6 +139,15 @@ const defaultConfig: LoginCustomization = {
   siteButtonText: 'Voltar para o site do Objetivo',
   siteButtonUrl: 'https://objetivo.br',
   
+  // Configurações do Botão de Login
+  loginButtonText: 'Entrar no Sistema',
+  loginButtonColor: '#002776',
+  loginButtonHoverColor: '#001A5C',
+  loginButtonTextColor: '#FFFFFF',
+  loginButtonSize: 'medium',
+  loginButtonStyle: 'solid',
+  loginButtonRounded: true,
+  
   // Rodapé
   showFooter: true,
   copyrightText: 'Copyright © 1997-2025 Colégio Objetivo. Todos os direitos reservados.',
@@ -180,7 +195,7 @@ const defaultConfig: LoginCustomization = {
 };
 
 export function PersonalizacaoLoginPage() {
-  const { configs, saveConfig: saveGlobalConfig, loading: globalLoading } = useGlobalConfig();
+  const { configs, saveConfig: saveGlobalConfig } = useGlobalConfig();
   const [config, setConfig] = useState<LoginCustomization>(defaultConfig);
   const [activeTab, setActiveTab] = useState<'layout' | 'branding' | 'textos' | 'cores' | 'funcionalidades' | 'efeitos' | 'acessibilidade'>('layout');
   const [loading, setLoading] = useState(false);
@@ -745,6 +760,159 @@ export function PersonalizacaoLoginPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Texto abaixo do título de login"
                     />
+                  </div>
+
+                  <hr className="border-gray-200" />
+
+                  <h4 className="text-md font-semibold text-gray-900 mt-6">🔘 Personalização do Botão de Login</h4>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Texto do Botão "Entrar"
+                    </label>
+                    <input
+                      type="text"
+                      value={config.loginButtonText}
+                      onChange={(e) => setConfig({ ...config, loginButtonText: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Ex: Entrar no Sistema, Acessar Portal, Login"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tamanho do Botão
+                      </label>
+                      <select
+                        value={config.loginButtonSize}
+                        onChange={(e) => setConfig({ ...config, loginButtonSize: e.target.value as 'small' | 'medium' | 'large' })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="small">Pequeno</option>
+                        <option value="medium">Médio</option>
+                        <option value="large">Grande</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Estilo do Botão
+                      </label>
+                      <select
+                        value={config.loginButtonStyle}
+                        onChange={(e) => setConfig({ ...config, loginButtonStyle: e.target.value as 'solid' | 'outline' | 'gradient' })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="solid">Sólido</option>
+                        <option value="outline">Contorno</option>
+                        <option value="gradient">Gradiente</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Cor do Botão
+                      </label>
+                      <div className="flex space-x-2">
+                        <input
+                          type="color"
+                          value={config.loginButtonColor}
+                          onChange={(e) => setConfig({ ...config, loginButtonColor: e.target.value })}
+                          className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={config.loginButtonColor}
+                          onChange={(e) => setConfig({ ...config, loginButtonColor: e.target.value })}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          placeholder="#002776"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Cor ao Passar o Mouse
+                      </label>
+                      <div className="flex space-x-2">
+                        <input
+                          type="color"
+                          value={config.loginButtonHoverColor}
+                          onChange={(e) => setConfig({ ...config, loginButtonHoverColor: e.target.value })}
+                          className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={config.loginButtonHoverColor}
+                          onChange={(e) => setConfig({ ...config, loginButtonHoverColor: e.target.value })}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          placeholder="#001A5C"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Cor do Texto
+                      </label>
+                      <div className="flex space-x-2">
+                        <input
+                          type="color"
+                          value={config.loginButtonTextColor}
+                          onChange={(e) => setConfig({ ...config, loginButtonTextColor: e.target.value })}
+                          className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={config.loginButtonTextColor}
+                          onChange={(e) => setConfig({ ...config, loginButtonTextColor: e.target.value })}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          placeholder="#FFFFFF"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="loginButtonRounded"
+                      checked={config.loginButtonRounded}
+                      onChange={(e) => setConfig({ ...config, loginButtonRounded: e.target.checked })}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="loginButtonRounded" className="ml-2 text-sm text-gray-700">
+                      Botão com bordas arredondadas
+                    </label>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h5 className="text-sm font-medium text-blue-900 mb-2">🎨 Preview do Botão</h5>
+                    <button
+                      type="button"
+                      disabled
+                      className={`
+                        inline-flex items-center justify-center font-medium transition-all duration-200 cursor-default
+                        ${config.loginButtonSize === 'small' ? 'px-4 py-2 text-sm' : ''}
+                        ${config.loginButtonSize === 'medium' ? 'px-6 py-3 text-base' : ''}
+                        ${config.loginButtonSize === 'large' ? 'px-8 py-4 text-lg' : ''}
+                        ${config.loginButtonRounded ? 'rounded-lg' : 'rounded'}
+                        ${config.loginButtonStyle === 'solid' ? '' : ''}
+                        ${config.loginButtonStyle === 'outline' ? 'border-2' : ''}
+                        ${config.loginButtonStyle === 'gradient' ? 'bg-gradient-to-r' : ''}
+                      `}
+                      style={{
+                        backgroundColor: config.loginButtonStyle === 'solid' ? config.loginButtonColor : 'transparent',
+                        backgroundImage: config.loginButtonStyle === 'gradient' ? `linear-gradient(to right, ${config.loginButtonColor}, ${config.loginButtonHoverColor})` : 'none',
+                        color: config.loginButtonStyle === 'outline' ? config.loginButtonColor : config.loginButtonTextColor,
+                        borderColor: config.loginButtonStyle === 'outline' ? config.loginButtonColor : 'transparent'
+                      }}
+                    >
+                      {config.loginButtonText}
+                    </button>
                   </div>
                 </div>
               )}
