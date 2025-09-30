@@ -16,7 +16,22 @@ export function PresencaPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [turmaSelected, setTurmaSelected] = useState('');
-  const [dataSelected, setDataSelected] = useState(new Date().toISOString().split('T')[0]);
+  // Funções utilitárias para tratar datas em horário local
+  const getTodayLocalISO = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`; // YYYY-MM-DD no fuso local
+  };
+
+  const formatPtBrFromISO = (iso: string) => {
+    if (!iso || typeof iso !== 'string' || !iso.includes('-')) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
+  const [dataSelected, setDataSelected] = useState(getTodayLocalISO());
   const [presencas, setPresencas] = useState<PresencaAluno[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -367,7 +382,7 @@ export function PresencaPage() {
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium text-blue-800">
-                    {new Date(dataSelected).toLocaleDateString('pt-BR')}
+                    {formatPtBrFromISO(dataSelected)}
                   </span>
                 </div>
               </div>
@@ -460,7 +475,7 @@ export function PresencaPage() {
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                       <Calendar className="h-4 w-4" />
-                      <span>{new Date(dataSelected).toLocaleDateString('pt-BR')}</span>
+                      <span>{formatPtBrFromISO(dataSelected)}</span>
                     </div>
                   </div>
                 </div>
